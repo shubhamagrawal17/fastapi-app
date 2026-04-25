@@ -7,3 +7,5 @@ flake8
 black
 pip-audit
 email-validator
+python-jose
+passlib[bcrypt]
