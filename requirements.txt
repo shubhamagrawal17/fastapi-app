@@ -6,3 +6,4 @@ httpx
 flake8
 black
 pip-audit
+email-validator
