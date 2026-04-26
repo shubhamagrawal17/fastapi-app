@@ -103,12 +103,15 @@ jobs:
       - name: Run Security Scan
         run: |
           bandit -r app/ -f json -o bandit-report.json || true
+          bandit -r app/ -f html -o bandit-report.html || true
 
-      - name: Upload Security Report
+      - name: Upload Security Reports
         uses: actions/upload-artifact@v4
         with:
           name: security-report
-          path: bandit-report.json
+          path: |
+            bandit-report.json
+            bandit-report.html
 
 
 # =========================
