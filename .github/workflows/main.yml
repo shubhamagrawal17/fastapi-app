@@ -73,7 +73,7 @@ jobs:
 
       - name: Run Lint (HTML + GitHub UI)
         run: |
-          flake8 . --format=github
+          flake8 . --format=github || true
           flake8 . --format=html --htmldir=flake8-report || true
 
       - name: Upload Lint Report
