@@ -1,14 +1,229 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 
-name: test
+name: FastAPI CI/CD Pipeline 🚀
 
 on: workflow_dispatch
+  #push:
+  #branches: ["main"]
+  #workflow_dispatch:
+
+env:
+  IMAGE_NAME: fastapi-app
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
 
-        steps:
-            - name: First step
-              run: echo "Hello"
-            - run
+  # =========================
+  # 🧪 TEST STAGE
+  # =========================
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      PYTHONPATH: .
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-html
+
+      - name: Run Tests
+        run: |
+          pytest \
+            --junitxml=report.xml \
+            --cov=app \
+            --cov-report=xml \
+            --html=report.html \
+            --self-contained-html
+
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: |
+            report.xml
+            coverage.xml
+            report.html
+
+  # =========================
+  # 🧹 LINT STAGE
+  # =========================
+  lint:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Linter
+        run: pip install flake8 flake8-html
+
+      - name: Run Lint
+        run: |
+          flake8 . --format=github || true
+          flake8 . --format=html --htmldir=flake8-report || true
+
+      - name: Upload Lint Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: flake8-report
+
+  # =========================
+  # 🔐 SECURITY SCAN
+  # =========================
+  security:
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Security Scan
+        run: |
+          bandit -r app/ -f json -o bandit-report.json || true
+          bandit -r app/ -f html -o bandit-report.html || true
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: |
+            bandit-report.json
+            bandit-report.html
+
+  # =========================
+  # 📦 DEPENDENCY SCAN
+  # =========================
+  dependency-scan:
+    runs-on: ubuntu-latest
+    needs: security
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Run Dependency Scan
+        run: |
+          pip-audit -r requirements.txt -f json -o dependency-report.json || true
+
+      - name: Convert JSON → HTML
+        run: |
+          python <<EOF
+          import json
+
+          with open("dependency-report.json") as f:
+              data = json.load(f)
+
+          deps = data.get("dependencies", [])
+
+          html = """
+          <html>
+          <head>
+          <title>Dependency Report</title>
+          <style>
+          body { font-family: Arial; background:#0f172a; color:white; }
+          h1 { text-align:center; }
+          table { width:100%; border-collapse: collapse; margin-top:20px; }
+          th, td { padding:10px; border:1px solid #444; }
+          th { background:#1e293b; }
+          tr:nth-child(even) { background:#111827; }
+          .safe { color:#22c55e; font-weight:bold; }
+          .vuln { color:#ef4444; font-weight:bold; }
+          </style>
+          </head>
+          <body>
+          <h1>🚀 Dependency Vulnerability Report</h1>
+          <table>
+          <tr><th>Package</th><th>Version</th><th>Status</th><th>Details</th></tr>
+          """
+
+          vuln_count = 0
+
+          for dep in deps:
+              name = dep.get("name")
+              version = dep.get("version")
+              vulns = dep.get("vulns", [])
+
+              if vulns:
+                  vuln_count += len(vulns)
+                  for v in vulns:
+                      html += f"<tr><td>{name}</td><td>{version}</td><td class='vuln'>Vulnerable</td><td>{v.get('id')}</td></tr>"
+              else:
+                  html += f"<tr><td>{name}</td><td>{version}</td><td class='safe'>Safe</td><td>—</td></tr>"
+
+          html += "</table>"
+
+          if vuln_count == 0:
+              html += "<h2 style='color:#22c55e;text-align:center;'>✅ No vulnerabilities found</h2>"
+
+          html += "</body></html>"
+
+          with open("dependency-report.html", "w") as f:
+              f.write(html)
+          EOF
+
+      - name: Upload Dependency Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: |
+            dependency-report.json
+            dependency-report.html
+
+  # =========================
+  # 🐳 BUILD & PUSH
+  # =========================
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: dependency-scan # ✅ FIXED (was security before)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Tag as Latest
+        run: |
+          docker tag ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+                     ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
