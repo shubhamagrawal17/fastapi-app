@@ -63,11 +63,10 @@ jobs:
       - name: Install Linter
         run: pip install flake8 flake8-html
 
-      - name: Run Lint
-        run: |
-          flake8 . --format=github
-          flake8 . --format=html --htmldir=flake8-report || true
-
+      - name: Generate Lint HTML Report
+        run: flake8 . --format=html --htmldir=flake8-report || true
+      - name: Enforce Lint Rules
+        run: flake8 . --count --max-complexity=10 --max-line-length=120
       - name: Upload Lint Report
         uses: actions/upload-artifact@v4
         with:
