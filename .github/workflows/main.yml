@@ -2,10 +2,10 @@
 
 name: FastAPI CI/CD Pipeline 🚀
 
-on: workflow_dispatch
-  #push:
-  #branches: ["main"]
-  #workflow_dispatch:
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
 
 env:
   IMAGE_NAME: fastapi-app
@@ -17,7 +17,6 @@ jobs:
   # =========================
   test:
     runs-on: ubuntu-latest
-
     env:
       PYTHONPATH: .
 
@@ -46,10 +45,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: |
-            report.xml
-            coverage.xml
-            report.html
+          path: report.*
 
   # =========================
   # 🧹 LINT STAGE
@@ -60,7 +56,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -88,7 +83,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -105,9 +99,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: security-report
-          path: |
-            bandit-report.json
-            bandit-report.html
+          path: bandit-report.*
 
   # =========================
   # 📦 DEPENDENCY SCAN
@@ -118,7 +110,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -140,28 +131,8 @@ jobs:
 
           deps = data.get("dependencies", [])
 
-          html = """
-          <html>
-          <head>
-          <title>Dependency Report</title>
-          <style>
-          body { font-family: Arial; background:#0f172a; color:white; }
-          h1 { text-align:center; }
-          table { width:100%; border-collapse: collapse; margin-top:20px; }
-          th, td { padding:10px; border:1px solid #444; }
-          th { background:#1e293b; }
-          tr:nth-child(even) { background:#111827; }
-          .safe { color:#22c55e; font-weight:bold; }
-          .vuln { color:#ef4444; font-weight:bold; }
-          </style>
-          </head>
-          <body>
-          <h1>🚀 Dependency Vulnerability Report</h1>
-          <table>
-          <tr><th>Package</th><th>Version</th><th>Status</th><th>Details</th></tr>
-          """
-
-          vuln_count = 0
+          html = "<html><body><h1>Dependency Report</h1><table border='1'>"
+          html += "<tr><th>Package</th><th>Version</th><th>Status</th></tr>"
 
           for dep in deps:
               name = dep.get("name")
@@ -169,18 +140,11 @@ jobs:
               vulns = dep.get("vulns", [])
 
               if vulns:
-                  vuln_count += len(vulns)
-                  for v in vulns:
-                      html += f"<tr><td>{name}</td><td>{version}</td><td class='vuln'>Vulnerable</td><td>{v.get('id')}</td></tr>"
+                  html += f"<tr><td>{name}</td><td>{version}</td><td>Vulnerable</td></tr>"
               else:
-                  html += f"<tr><td>{name}</td><td>{version}</td><td class='safe'>Safe</td><td>—</td></tr>"
+                  html += f"<tr><td>{name}</td><td>{version}</td><td>Safe</td></tr>"
 
-          html += "</table>"
-
-          if vuln_count == 0:
-              html += "<h2 style='color:#22c55e;text-align:center;'>✅ No vulnerabilities found</h2>"
-
-          html += "</body></html>"
+          html += "</table></body></html>"
 
           with open("dependency-report.html", "w") as f:
               f.write(html)
@@ -190,16 +154,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dependency-report
-          path: |
-            dependency-report.json
-            dependency-report.html
+          path: dependency-report.*
 
   # =========================
   # 🐳 BUILD & PUSH
   # =========================
   build-and-push:
     runs-on: ubuntu-latest
-    needs: dependency-scan # ✅ FIXED (was security before)
+    needs: dependency-scan
 
     steps:
       - uses: actions/checkout@v4
@@ -214,16 +176,45 @@ jobs:
       - name: Login to ACR
         run: az acr login --name ${{ secrets.ACR_NAME }}
 
-      - name: Build Docker Image
+      - name: Build Image
         run: |
           docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
-      - name: Push Docker Image
+      - name: Push Image
         run: |
           docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Tag as Latest
+      - name: Tag Latest
         run: |
           docker tag ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
                      ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
           docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+
+  # =========================
+  # 🌍 DEPLOY REPORT DASHBOARD
+  # =========================
+  deploy-report:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Prepare Site
+        run: |
+          mkdir site
+          cp -r test-report/* site/ || true
+          cp -r lint-report/* site/ || true
+          cp -r security-report/* site/ || true
+          cp -r dependency-report/* site/ || true
+          cp -r reports/* site/ || true
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true
