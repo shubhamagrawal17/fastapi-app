@@ -35,17 +35,23 @@ jobs:
       - name: Run Tests
         run: |
           pytest \
-            --junitxml=report.xml \
-            --cov=app \
-            --cov-report=xml \
-            --html=report.html \
-            --self-contained-html
+          --junitxml=report.xml \
+          --cov=app \
+          --cov-report=xml \
+          --cov-report=html \
+          --html=report.html \
+          --self-contained-html \
+          --cov-fail-under=80
 
       - name: Upload Test Reports
         uses: actions/upload-artifact@v4
         with:
           name: test-report
-          path: report.*
+          path: |
+            report.xml
+            report.html
+            coverage.xml
+            htmlcov/
 
   # =========================
   # 🧹 LINT STAGE
@@ -212,6 +218,7 @@ jobs:
           mkdir -p site/security-report
           mkdir -p site/dependency-report
           cp -r test-report/* site/test-report/ || true
+          cp -r test-report/htmlcov site/test-report/ || true
           cp -r lint-report/* site/lint-report/ || true
           cp -r security-report/* site/security-report/ || true
           cp -r dependency-report/* site/dependency-report/ || true
