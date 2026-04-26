@@ -65,7 +65,7 @@ jobs:
 
       - name: Run Lint
         run: |
-          flake8 . --format=github || true
+          flake8 . --format=github
           flake8 . --format=html --htmldir=flake8-report || true
 
       - name: Upload Lint Report
@@ -119,7 +119,7 @@ jobs:
 
       - name: Run Dependency Scan
         run: |
-          pip-audit -r requirements.txt -f json -o dependency-report.json || true
+          pip-audit -r requirements.txt -f json -o dependency-report.json
 
       - name: Convert JSON → HTML
         run: |
