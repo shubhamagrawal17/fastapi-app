@@ -2,10 +2,10 @@
 
 name: FastAPI CI/CD Pipeline 🚀
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ "main" ]
+on: workflow_dispatch
+  #workflow_dispatch:
+  #push:
+    #branches: [ "main" ]
 
 env:
   IMAGE_NAME: fastapi-app
@@ -208,10 +208,14 @@ jobs:
           mkdir site
           cp reports/index.html site/index.html
           touch site/.nojekyll
-          cp -r test-report/* site/ || true
-          cp -r lint-report/* site/ || true
-          cp -r security-report/* site/ || true
-          cp -r dependency-report/* site/ || true
+          mkdir -p site/test-report
+          mkdir -p site/lint-report
+          mkdir -p site/security-report
+          mkdir -p site/dependency-report
+          cp -r test-report/* site/test-report/ || true
+          cp -r lint-report/* site/lint-report/ || true
+          cp -r security-report/* site/security-report/ || true
+          cp -r dependency-report/* site/dependency-report/ || true
           
 
       - name: Deploy to GitHub Pages
