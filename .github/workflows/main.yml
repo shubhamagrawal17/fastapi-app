@@ -207,6 +207,7 @@ jobs:
         run: |
           mkdir site
           cp reports/index.html site/index.html
+          touch site/.nojekyll
           cp -r test-report/* site/ || true
           cp -r lint-report/* site/ || true
           cp -r security-report/* site/ || true
