@@ -3,18 +3,15 @@
 name: FastAPI CI/CD Pipeline 🚀
 
 on: workflow_dispatch
-  #workflow_dispatch:
-  #push:
-    #branches: [ "main" ]
 
 env:
   IMAGE_NAME: fastapi-app
 
 jobs:
 
-  # =========================
-  # 🧪 TEST STAGE
-  # =========================
+# =========================
+# 🧪 TEST STAGE
+# =========================
   test:
     runs-on: ubuntu-latest
     env:
@@ -43,7 +40,26 @@ jobs:
           --self-contained-html \
           --cov-fail-under=80
 
-      - name: Upload Test Reports
+      - name: Extract Coverage %
+        run: |
+          python <<EOF
+          import xml.etree.ElementTree as ET
+          tree = ET.parse("coverage.xml")
+          root = tree.getroot()
+          coverage = float(root.attrib.get("line-rate", 0)) * 100
+
+          import json
+          with open("status.json", "w") as f:
+              json.dump({
+                  "tests": "passed",
+                  "coverage": round(coverage, 2),
+                  "lint": "unknown",
+                  "security": "unknown",
+                  "dependency": "unknown"
+              }, f)
+          EOF
+
+      - name: Upload Test Reports + Status
         uses: actions/upload-artifact@v4
         with:
           name: test-report
@@ -52,16 +68,23 @@ jobs:
             report.html
             coverage.xml
             htmlcov/
+            status.json
 
-  # =========================
-  # 🧹 LINT STAGE
-  # =========================
+
+# =========================
+# 🧹 LINT STAGE
+# =========================
   lint:
     runs-on: ubuntu-latest
     needs: test
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-report
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -69,25 +92,47 @@ jobs:
       - name: Install Linter
         run: pip install flake8 flake8-html
 
-      - name: Generate Lint HTML Report
-        run: flake8 . --format=html --htmldir=flake8-report || true
-      - name: Enforce Lint Rules
-        run: flake8 . --ignore=W292,W391 --max-line-length=120 || true
+      - name: Run Lint
+        run: |
+          flake8 . --format=html --htmldir=flake8-report || true
+
+          ERRORS=$(flake8 . --count --max-line-length=120 || true)
+
+          python <<EOF
+          import json
+
+          with open("status.json") as f:
+              status = json.load(f)
+
+          status["lint"] = "warning" if int("$ERRORS") > 0 else "passed"
+
+          with open("status.json", "w") as f:
+              json.dump(status, f)
+          EOF
+
       - name: Upload Lint Report
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
-          path: flake8-report
+          path: |
+            flake8-report
+            status.json
 
-  # =========================
-  # 🔐 SECURITY SCAN
-  # =========================
+
+# =========================
+# 🔐 SECURITY SCAN
+# =========================
   security:
     runs-on: ubuntu-latest
     needs: lint
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: lint-report
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -100,21 +145,44 @@ jobs:
           bandit -r app/ -f json -o bandit-report.json || true
           bandit -r app/ -f html -o bandit-report.html || true
 
+          python <<EOF
+          import json
+
+          with open("status.json") as f:
+              status = json.load(f)
+
+          data = json.load(open("bandit-report.json"))
+          issues = data.get("results", [])
+
+          status["security"] = "passed" if len(issues) == 0 else "warning"
+
+          with open("status.json", "w") as f:
+              json.dump(status, f)
+          EOF
+
       - name: Upload Security Reports
         uses: actions/upload-artifact@v4
         with:
           name: security-report
-          path: bandit-report.*
+          path: |
+            bandit-report.*
+            status.json
 
-  # =========================
-  # 📦 DEPENDENCY SCAN
-  # =========================
+
+# =========================
+# 📦 DEPENDENCY SCAN
+# =========================
   dependency-scan:
     runs-on: ubuntu-latest
     needs: security
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: security-report
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -124,111 +192,65 @@ jobs:
 
       - name: Run Dependency Scan
         run: |
-          pip-audit -r requirements.txt -f json -o dependency-report.json
+          pip-audit -r requirements.txt -f json -o dependency-report.json || true
 
-      - name: Convert JSON → HTML
-        run: |
           python <<EOF
           import json
 
-          with open("dependency-report.json") as f:
-              data = json.load(f)
+          with open("status.json") as f:
+              status = json.load(f)
 
-          deps = data.get("dependencies", [])
+          data = json.load(open("dependency-report.json"))
+          vulns = sum(len(dep.get("vulns", [])) for dep in data.get("dependencies", []))
 
-          html = "<html><body><h1>Dependency Report</h1><table border='1'>"
-          html += "<tr><th>Package</th><th>Version</th><th>Status</th></tr>"
+          status["dependency"] = "passed" if vulns == 0 else "warning"
 
-          for dep in deps:
-              name = dep.get("name")
-              version = dep.get("version")
-              vulns = dep.get("vulns", [])
-
-              if vulns:
-                  html += f"<tr><td>{name}</td><td>{version}</td><td>Vulnerable</td></tr>"
-              else:
-                  html += f"<tr><td>{name}</td><td>{version}</td><td>Safe</td></tr>"
-
-          html += "</table></body></html>"
-
-          with open("dependency-report.html", "w") as f:
-              f.write(html)
+          with open("status.json", "w") as f:
+              json.dump(status, f)
           EOF
 
       - name: Upload Dependency Reports
         uses: actions/upload-artifact@v4
         with:
           name: dependency-report
-          path: dependency-report.*
+          path: |
+            dependency-report.*
+            status.json
 
-  # =========================
-  # 🐳 BUILD & PUSH
-  # =========================
-  build-and-push:
-    runs-on: ubuntu-latest
-    needs: dependency-scan
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Login to ACR
-        run: az acr login --name ${{ secrets.ACR_NAME }}
-
-      - name: Build Image
-        run: |
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-
-      - name: Push Image
-        run: |
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-      - name: Tag Latest
-        run: |
-          docker tag ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-                     ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
-
-  # =========================
-  # 🌍 DEPLOY REPORT DASHBOARD
-  # =========================
+# =========================
+# 🌍 DEPLOY REPORT DASHBOARD
+# =========================
   deploy-report:
     runs-on: ubuntu-latest
     needs: dependency-scan
+
     steps:
       - uses: actions/checkout@v4
-  
-      - name: Download Artifacts
+
+      - name: Download All Artifacts
         uses: actions/download-artifact@v4
-  
+
       - name: Prepare Site
         run: |
           mkdir -p site
-  
-          # Copy dashboard
+
           cp reports/index.html site/index.html
-  
-          # Disable Jekyll (important for folders like htmlcov)
           touch site/.nojekyll
-  
-          # Create structured folders
+
           mkdir -p site/test-report
           mkdir -p site/lint-report
           mkdir -p site/security-report
           mkdir -p site/dependency-report
-  
-          # Copy artifacts
+
           cp -r test-report/* site/test-report/ || true
           cp -r lint-report/* site/lint-report/ || true
           cp -r security-report/* site/security-report/ || true
           cp -r dependency-report/* site/dependency-report/ || true
-  
+
+          # FINAL STATUS FILE
+          cp dependency-report/status.json site/status.json
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
