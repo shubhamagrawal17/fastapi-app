@@ -112,7 +112,59 @@ jobs:
           path: |
             bandit-report.json
             bandit-report.html
-
+  dependency-scan:
+    runs-on: ubuntu-latest
+    needs: security
+  
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+  
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+  
+      - name: Install pip-audit
+        run: pip install pip-audit
+  
+      - name: Run Dependency Scan (JSON)
+        run: |
+          pip-audit -r requirements.txt -f json -o dependency-report.json || true
+  
+      # ✅ Convert JSON → HTML
+      - name: Convert Report to HTML
+        run: |
+          python <<EOF
+          import json
+  
+          with open("dependency-report.json") as f:
+              data = json.load(f)
+  
+          html = "<html><head><title>Dependency Scan Report</title></head><body>"
+          html += "<h1>Dependency Vulnerability Report</h1><table border='1'>"
+          html += "<tr><th>Package</th><th>Version</th><th>Vulnerability</th></tr>"
+  
+          for dep in data.get("dependencies", []):
+              name = dep.get("name")
+              version = dep.get("version")
+  
+              for vuln in dep.get("vulns", []):
+                  html += f"<tr><td>{name}</td><td>{version}</td><td>{vuln.get('id')}</td></tr>"
+  
+          html += "</table></body></html>"
+  
+          with open("dependency-report.html", "w") as f:
+              f.write(html)
+          EOF
+  
+      - name: Upload Dependency Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: |
+            dependency-report.json
+            dependency-report.html
 
 # =========================
 # 🐳 BUILD & PUSH TO ACR
