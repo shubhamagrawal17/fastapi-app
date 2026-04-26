@@ -1,4 +1,6 @@
-name: FastAPI CI/CD Pipeline
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: FastAPI CI/CD Pipeline 🚀
 
 on:
   push:
@@ -16,6 +18,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      PYTHONPATH: .
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -28,11 +33,16 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-html
 
-      - name: Run Tests with Reports
+      - name: Run Tests (HTML + XML + Coverage)
         run: |
-          PYTHONPATH=. pytest --junitxml=report.xml --cov=app --cov-report=xml
+          pytest \
+            --junitxml=report.xml \
+            --cov=app \
+            --cov-report=xml \
+            --html=report.html \
+            --self-contained-html
 
       - name: Upload Test Reports
         uses: actions/upload-artifact@v4
@@ -41,6 +51,7 @@ jobs:
           path: |
             report.xml
             coverage.xml
+            report.html
 
 
 # =========================
@@ -58,12 +69,12 @@ jobs:
           python-version: "3.11"
 
       - name: Install Linter
-        run: pip install flake8
+        run: pip install flake8 flake8-html
 
-      - name: Run Lint (HTML + Annotations)
+      - name: Run Lint (HTML + GitHub UI)
         run: |
-          flake8 . --format=html --htmldir=flake8-report || true
           flake8 . --format=github
+          flake8 . --format=html --htmldir=flake8-report || true
 
       - name: Upload Lint Report
         uses: actions/upload-artifact@v4
