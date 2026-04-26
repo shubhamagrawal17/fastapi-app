@@ -132,39 +132,69 @@ jobs:
         run: |
           pip-audit -r requirements.txt -f json -o dependency-report.json || true
   
-      # ✅ Convert JSON → HTML
       - name: Convert Report to HTML
         run: |
           python <<EOF
           import json
-  
+      
           with open("dependency-report.json") as f:
               data = json.load(f)
-  
-          html = "<html><head><title>Dependency Scan Report</title></head><body>"
-          html += "<h1>Dependency Vulnerability Report</h1><table border='1'>"
-          html += "<tr><th>Package</th><th>Version</th><th>Vulnerability</th></tr>"
-  
-          for dep in data.get("dependencies", []):
+      
+          deps = data.get("dependencies", [])
+      
+          html = """
+          <html>
+          <head>
+          <title>Dependency Report</title>
+          <style>
+          body { font-family: Arial; background:#0f172a; color:white; }
+          h1 { text-align:center; }
+          table { width:100%; border-collapse: collapse; margin-top:20px; }
+          th, td { padding:10px; border:1px solid #444; text-align:left; }
+          th { background:#1e293b; }
+          tr:nth-child(even) { background:#111827; }
+          .safe { color: #22c55e; font-weight:bold; }
+          .vuln { color: #ef4444; font-weight:bold; }
+          </style>
+          </head>
+          <body>
+          <h1>🚀 Dependency Vulnerability Report</h1>
+          <table>
+          <tr><th>Package</th><th>Version</th><th>Status</th><th>Details</th></tr>
+          """
+      
+          vuln_count = 0
+      
+          for dep in deps:
               name = dep.get("name")
               version = dep.get("version")
-  
-              for vuln in dep.get("vulns", []):
-                  html += f"<tr><td>{name}</td><td>{version}</td><td>{vuln.get('id')}</td></tr>"
-  
-          html += "</table></body></html>"
-  
+              vulns = dep.get("vulns", [])
+      
+              if vulns:
+                  vuln_count += len(vulns)
+                  for v in vulns:
+                      html += f"<tr><td>{name}</td><td>{version}</td><td class='vuln'>Vulnerable</td><td>{v.get('id')}</td></tr>"
+              else:
+                  html += f"<tr><td>{name}</td><td>{version}</td><td class='safe'>Safe</td><td>—</td></tr>"
+      
+          html += "</table>"
+      
+          if vuln_count == 0:
+              html += "<h2 style='color:#22c55e;text-align:center;'>✅ No vulnerabilities found</h2>"
+      
+          html += "</body></html>"
+      
           with open("dependency-report.html", "w") as f:
               f.write(html)
           EOF
-  
-      - name: Upload Dependency Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-report
-          path: |
-            dependency-report.json
-            dependency-report.html
+      
+          - name: Upload Dependency Reports
+            uses: actions/upload-artifact@v4
+            with:
+              name: dependency-report
+              path: |
+                dependency-report.json
+              dependency-report.html
 
 # =========================
 # 🐳 BUILD & PUSH TO ACR
