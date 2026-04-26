@@ -1,32 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>CI/CD Dashboard</title>
+    <meta charset="UTF-8" />
+    <title>🚀 CI/CD Dashboard</title>
+
     <style>
         body {
-            font-family: Arial;
-            background: #0f172a;
+            margin: 0;
+            font-family: "Segoe UI", Arial;
+            background: linear-gradient(135deg, #0f172a, #020617);
             color: white;
-            text-align: center;
         }
 
         h1 {
-            margin-top: 40px;
+            text-align: center;
+            margin: 40px 0 10px;
+            font-size: 32px;
+        }
+
+        p {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 40px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            padding: 0 40px 50px;
+            max-width: 1000px;
+            margin: auto;
         }
 
         .card {
-            background: #1e293b;
-            margin: 20px auto;
-            padding: 20px;
-            width: 300px;
-            border-radius: 10px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 25px;
+            transition: 0.3s;
+            backdrop-filter: blur(8px);
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.2);
+        }
+
+        .title {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            color: #22c55e;
+        }
+
+        .warning {
+            color: #f59e0b;
+        }
+
+        .danger {
+            color: #ef4444;
         }
 
         a {
-            color: #38bdf8;
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            background: #2563eb;
+            color: white;
             text-decoration: none;
-            font-size: 18px;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        a:hover {
+            background: #1d4ed8;
         }
     </style>
 </head>
@@ -34,25 +91,38 @@
 <body>
 
     <h1>🚀 CI/CD Dashboard</h1>
+    <p>FastAPI Production Pipeline Reports</p>
 
-    <div class="card">
-        <h2>🧪 Test Report</h2>
-        <a href="./report.html">View</a>
-    </div>
+    <div class="grid">
 
-    <div class="card">
-        <h2>🧹 Lint Report</h2>
-        <a href="./flake8-report/index.html">View</a>
-    </div>
+        <!-- Test -->
+        <div class="card">
+            <div class="title">🧪 Test Report</div>
+            <div class="status success">✔ Tests Executed</div>
+            <a href="./test-report/report.html">View Report</a>
+        </div>
 
-    <div class="card">
-        <h2>🔐 Security Report</h2>
-        <a href="./bandit-report.html">View</a>
-    </div>
+        <!-- Lint -->
+        <div class="card">
+            <div class="title">🧹 Lint Report</div>
+            <div class="status warning">⚠ Code Issues Detected</div>
+            <a href="./lint-report/index.html">View Report</a>
+        </div>
 
-    <div class="card">
-        <h2>📦 Dependency Report</h2>
-        <a href="./dependency-report.html">View</a>
+        <!-- Security -->
+        <div class="card">
+            <div class="title">🔐 Security Scan</div>
+            <div class="status success">✔ No Critical Issues</div>
+            <a href="./security-report/bandit-report.html">View Report</a>
+        </div>
+
+        <!-- Dependency -->
+        <div class="card">
+            <div class="title">📦 Dependency Scan</div>
+            <div class="status success">✔ Dependencies Safe</div>
+            <a href="./dependency-report/dependency-report.html">View Report</a>
+        </div>
+
     </div>
 
 </body>
