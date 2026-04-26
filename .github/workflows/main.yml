@@ -206,11 +206,12 @@ jobs:
       - name: Prepare Site
         run: |
           mkdir site
+          cp reports/index.html site/index.html
           cp -r test-report/* site/ || true
           cp -r lint-report/* site/ || true
           cp -r security-report/* site/ || true
           cp -r dependency-report/* site/ || true
-          cp -r reports/* site/ || true
+          
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
