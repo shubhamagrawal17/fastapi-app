@@ -95,17 +95,24 @@ jobs:
       - name: Run Lint
         run: |
           flake8 . --format=html --htmldir=flake8-report || true
-
-          ERRORS=$(flake8 . --count --max-line-length=120 || true)
-
+      
+          ERRORS=$(flake8 . --count --max-line-length=120 2>/dev/null || echo 0)
+      
+          echo "Flake8 Errors: $ERRORS"
+      
           python <<EOF
           import json
-
+      
           with open("status.json") as f:
               status = json.load(f)
-
-          status["lint"] = "warning" if int("$ERRORS") > 0 else "passed"
-
+      
+          try:
+              errors = int("$ERRORS")
+          except:
+              errors = 1
+      
+          status["lint"] = "warning" if errors > 0 else "passed"
+      
           with open("status.json", "w") as f:
               json.dump(status, f)
           EOF
