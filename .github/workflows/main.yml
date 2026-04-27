@@ -102,30 +102,36 @@ jobs:
       - name: Run Lint
         run: |
           mkdir -p flake8-report
-          # Generate the HTML report
+          # 1. Generate the HTML report
           flake8 . --format=html --htmldir=flake8-report || true
           
-          # Get ONLY the numerical count of errors to avoid string errors
+          # 2. Get the error count and save it to the GitHub Environment
+          # flake8 --count prints the number to stdout. We capture that.
           COUNT=$(flake8 . --count --max-line-length=120 || echo "0")
-          # Clean the variable to ensure it only contains digits
-          CLEAN_COUNT=$(echo $COUNT | grep -o '[0-9]\+' | head -1 || echo "0")
+          echo "LINT_COUNT=$COUNT" >> $GITHUB_ENV
 
+      - name: Update Status JSON
+        run: |
           python <<EOF
           import json
           import os
 
-          with open("status.json") as f:
+          # Load existing status
+          with open("status.json", "r") as f:
               status = json.load(f)
           
-          # Use the cleaned count from the environment variable
-          error_count = int(os.environ.get("LINT_COUNT", 0))
+          # Get count from environment, default to 0 if something goes wrong
+          try:
+              error_count = int(os.environ.get("LINT_COUNT", 0))
+          except ValueError:
+              error_count = 0
+
           status["lint"] = "passed" if error_count == 0 else "warning"
 
+          # Write updated status
           with open("status.json", "w") as f:
               json.dump(status, f)
           EOF
-        env:
-          LINT_COUNT: ${{ env.CLEAN_COUNT }}
 
       - name: Upload Lint Report
         uses: actions/upload-artifact@v4
