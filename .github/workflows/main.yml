@@ -3,9 +3,6 @@
 name: FastAPI CI/CD Pipeline 🚀
 
 on: workflow_dispatch
-  #workflow_dispatch:
-  #push:
-    #branches: [ main ]
 
 env:
   IMAGE_NAME: fastapi-app
@@ -41,30 +38,25 @@ jobs:
           --cov-report=html \
           --html=report.html \
           --self-contained-html \
-          --cov-fail-under=80 || true
+          --cov-fail-under=80
 
       - name: Extract Coverage %
         run: |
           python <<EOF
           import xml.etree.ElementTree as ET
+          tree = ET.parse("coverage.xml")
+          root = tree.getroot()
+          coverage = float(root.attrib.get("line-rate", 0)) * 100
+
           import json
-          import os
-
-          coverage = 0
-          if os.path.exists("coverage.xml"):
-              tree = ET.parse("coverage.xml")
-              root = tree.getroot()
-              coverage = float(root.attrib.get("line-rate", 0)) * 100
-
-          status = {
-              "tests": "passed",
-              "coverage": round(coverage, 2),
-              "lint": "unknown",
-              "security": "unknown",
-              "dependency": "unknown"
-          }
           with open("status.json", "w") as f:
-              json.dump(status, f)
+              json.dump({
+                  "tests": "passed",
+                  "coverage": round(coverage, 2),
+                  "lint": "unknown",
+                  "security": "unknown",
+                  "dependency": "unknown"
+              }, f)
           EOF
 
       - name: Upload Test Reports + Status
@@ -77,6 +69,7 @@ jobs:
             coverage.xml
             htmlcov/
             status.json
+
 
 # =========================
 # 🧹 LINT STAGE
@@ -101,34 +94,18 @@ jobs:
 
       - name: Run Lint
         run: |
-          mkdir -p flake8-report
-          # 1. Generate the HTML report
           flake8 . --format=html --htmldir=flake8-report || true
-          
-          # 2. Get the error count and save it to the GitHub Environment
-          # flake8 --count prints the number to stdout. We capture that.
-          COUNT=$(flake8 . --count --max-line-length=120 || echo "0")
-          echo "LINT_COUNT=$COUNT" >> $GITHUB_ENV
 
-      - name: Update Status JSON
-        run: |
+          ERRORS=$(flake8 . --count --max-line-length=120 || true)
+
           python <<EOF
           import json
-          import os
 
-          # Load existing status
-          with open("status.json", "r") as f:
+          with open("status.json") as f:
               status = json.load(f)
-          
-          # Get count from environment, default to 0 if something goes wrong
-          try:
-              error_count = int(os.environ.get("LINT_COUNT", 0))
-          except ValueError:
-              error_count = 0
 
-          status["lint"] = "passed" if error_count == 0 else "warning"
+          status["lint"] = "warning" if int("$ERRORS") > 0 else "passed"
 
-          # Write updated status
           with open("status.json", "w") as f:
               json.dump(status, f)
           EOF
@@ -138,8 +115,9 @@ jobs:
         with:
           name: lint-report
           path: |
-            flake8-report/
+            flake8-report
             status.json
+
 
 # =========================
 # 🔐 SECURITY SCAN
@@ -169,13 +147,13 @@ jobs:
 
           python <<EOF
           import json
+
           with open("status.json") as f:
               status = json.load(f)
 
-          with open("bandit-report.json") as f:
-              data = json.load(f)
-          
+          data = json.load(open("bandit-report.json"))
           issues = data.get("results", [])
+
           status["security"] = "passed" if len(issues) == 0 else "warning"
 
           with open("status.json", "w") as f:
@@ -187,9 +165,9 @@ jobs:
         with:
           name: security-report
           path: |
-            bandit-report.json
-            bandit-report.html
+            bandit-report.*
             status.json
+
 
 # =========================
 # 📦 DEPENDENCY SCAN
@@ -218,13 +196,13 @@ jobs:
 
           python <<EOF
           import json
+
           with open("status.json") as f:
               status = json.load(f)
 
-          with open("dependency-report.json") as f:
-              data = json.load(f)
-          
+          data = json.load(open("dependency-report.json"))
           vulns = sum(len(dep.get("vulns", [])) for dep in data.get("dependencies", []))
+
           status["dependency"] = "passed" if vulns == 0 else "warning"
 
           with open("status.json", "w") as f:
@@ -236,8 +214,9 @@ jobs:
         with:
           name: dependency-report
           path: |
-            dependency-report.json
+            dependency-report.*
             status.json
+
 
 # =========================
 # 🌍 DEPLOY REPORT DASHBOARD
@@ -251,33 +230,26 @@ jobs:
 
       - name: Download All Artifacts
         uses: actions/download-artifact@v4
-        with:
-          path: artifacts
 
       - name: Prepare Site
         run: |
           mkdir -p site
-          
-          # 1. Copy the main dashboard template
-          if [ -f "reports/index.html" ]; then
-            cp reports/index.html site/index.html
-          else
-            echo "Error: reports/index.html not found!"
-            exit 1
-          fi
 
-          # 2. Copy the final status.json to the root for the dashboard to read
-          cp artifacts/dependency-report/status.json site/status.json
-
-          # 3. Organize sub-reports into named folders
-          mkdir -p site/test-report site/lint-report site/security-report site/dependency-report
-          
-          cp -r artifacts/test-report/* site/test-report/ || true
-          cp -r artifacts/lint-report/* site/lint-report/ || true
-          cp -r artifacts/security-report/* site/security-report/ || true
-          cp -r artifacts/dependency-report/* site/dependency-report/ || true
-
+          cp reports/index.html site/index.html
           touch site/.nojekyll
+
+          mkdir -p site/test-report
+          mkdir -p site/lint-report
+          mkdir -p site/security-report
+          mkdir -p site/dependency-report
+
+          cp -r test-report/* site/test-report/ || true
+          cp -r lint-report/* site/lint-report/ || true
+          cp -r security-report/* site/security-report/ || true
+          cp -r dependency-report/* site/dependency-report/ || true
+
+          # FINAL STATUS FILE
+          cp dependency-report/status.json site/status.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
