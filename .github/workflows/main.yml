@@ -179,94 +179,105 @@ jobs:
 # =========================
 # 📦 DEPENDENCY SCAN
 # =========================
-  dependency-scan:
-    runs-on: ubuntu-latest
-    needs: security
+dependency-scan:
+runs-on: ubuntu-latest
+needs: security
 
-    steps:
-      - uses: actions/checkout@v4
+steps:
+  - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: security-report
+  - uses: actions/download-artifact@v4
+    with:
+      name: security-report
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+  # Install Trivy
+  - name: Install Trivy
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y wget
+      wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
+      sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
 
-      - name: Install pip-audit
-        run: pip install pip-audit
+  # Run scan (filesystem = your repo, including requirements.txt)
+  - name: Run Dependency Scan (Trivy)
+    run: |
+      trivy fs . --format json -o dependency-report.json || true
 
-      - name: Run Dependency Scan
-        run: |
-          pip-audit -r requirements.txt -f json -o dependency-report.json || true
-      
-          python <<EOF
-          import json
-      
-          with open("status.json") as f:
-              status = json.load(f)
-      
-          data = json.load(open("dependency-report.json"))
-      
-          vulns = []
-          for dep in data.get("dependencies", []):
-              for v in dep.get("vulns", []):
-                  vulns.append({
-                      "package": dep.get("name"),
-                      "version": dep.get("version"),
-                      "id": v.get("id"),
-                      "description": v.get("description", "N/A")
-                  })
-      
-          # Update status
-          status["dependency"] = "passed" if len(vulns) == 0 else "warning"
-      
-          with open("status.json", "w") as f:
-              json.dump(status, f)
-      
-          # Generate HTML report
-          html = """
-          <html>
-          <head>
-              <title>Dependency Scan Report</title>
-              <style>
-                  body { font-family: Arial; padding: 20px; }
-                  h1 { color: #333; }
-                  .passed { color: green; }
-                  .warning { color: red; }
-                  table { border-collapse: collapse; width: 100%; }
-                  th, td { border: 1px solid #ccc; padding: 8px; }
-                  th { background: #f4f4f4; }
-              </style>
-          </head>
-          <body>
-          """
-      
-          html += f"<h1>Dependency Scan Result: <span class='{status['dependency']}'>{status['dependency'].upper()}</span></h1>"
-      
-          if vulns:
-              html += "<table><tr><th>Package</th><th>Version</th><th>Vulnerability</th><th>Description</th></tr>"
-              for v in vulns:
-                  html += f"<tr><td>{v['package']}</td><td>{v['version']}</td><td>{v['id']}</td><td>{v['description']}</td></tr>"
-              html += "</table>"
-          else:
-              html += "<p class='passed'>No vulnerabilities found 🎉</p>"
-      
-          html += "</body></html>"
-      
-          with open("dependency-report.html", "w") as f:
-              f.write(html)
-      
-          EOF
-      - name: Upload Dependency Reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependency-report
-          path: |
-            dependency-report.*
-            status.json
+      python <<EOF
+      import json
 
+      with open("status.json") as f:
+          status = json.load(f)
+
+      data = json.load(open("dependency-report.json"))
+
+      severity = "passed"
+
+      for result in data.get("Results", []):
+          for vuln in result.get("Vulnerabilities", []):
+              sev = vuln.get("Severity", "").upper()
+
+              if sev in ["CRITICAL", "HIGH"]:
+                  severity = "danger"
+                  break
+              elif sev == "MEDIUM" and severity != "danger":
+                  severity = "warning"
+
+          if severity == "danger":
+              break
+
+      status["dependency"] = severity
+
+      with open("status.json", "w") as f:
+          json.dump(status, f)
+      EOF
+
+  # Generate HTML report
+  - name: Generate HTML Report
+    run: |
+      python <<EOF
+      import json
+
+      data = json.load(open("dependency-report.json"))
+
+      rows = ""
+
+      for result in data.get("Results", []):
+          for v in result.get("Vulnerabilities", []):
+              rows += f"<tr><td>{v.get('PkgName')}</td><td>{v.get('InstalledVersion')}</td><td>{v.get('Severity')}</td><td>{v.get('Title')}</td></tr>"
+
+      html = f"""
+      <html>
+      <head>
+          <title>Dependency Scan Report</title>
+          <style>
+              body {{ font-family: Arial; padding: 20px; }}
+              table {{ border-collapse: collapse; width: 100%; }}
+              th, td {{ border: 1px solid #ccc; padding: 8px; }}
+              th {{ background: #f4f4f4; }}
+          </style>
+      </head>
+      <body>
+          <h1>Dependency Scan (Trivy)</h1>
+          <table>
+              <tr><th>Package</th><th>Version</th><th>Severity</th><th>Issue</th></tr>
+              {rows}
+          </table>
+      </body>
+      </html>
+      """
+
+      with open("dependency-report.html", "w") as f:
+          f.write(html)
+      EOF
+
+  - name: Upload Dependency Reports
+    uses: actions/upload-artifact@v4
+    with:
+      name: dependency-report
+      path: |
+        dependency-report.*
+        status.json
 
 # =========================
 # 🌍 DEPLOY REPORT DASHBOARD
