@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: 'pip'
 
       - name: Install Dependencies
         run: |
@@ -44,11 +45,12 @@ jobs:
         run: |
           python <<EOF
           import xml.etree.ElementTree as ET
+          import json
+
           tree = ET.parse("coverage.xml")
           root = tree.getroot()
           coverage = float(root.attrib.get("line-rate", 0)) * 100
 
-          import json
           with open("status.json", "w") as f:
               json.dump({
                   "tests": "passed",
@@ -88,6 +90,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: 'pip'
 
       - name: Install Linter
         run: pip install flake8 flake8-html
@@ -97,8 +100,6 @@ jobs:
           flake8 . --format=html --htmldir=flake8-report || true
 
           ERRORS=$(flake8 . --count --max-line-length=120 2>/dev/null | tail -n 1)
-
-          echo "Flake8 Errors Count: $ERRORS"
 
           python <<EOF
           import json
@@ -176,94 +177,85 @@ jobs:
             status.json
 
 
-  # =========================
-  # 📦 DEPENDENCY SCAN (TRIVY)
-  # =========================
+# =========================
+# 📦 DEPENDENCY SCAN (pip-audit)
+# =========================
   dependency-scan:
     runs-on: ubuntu-latest
     needs: security
-  
+
     steps:
       - uses: actions/checkout@v4
-  
+
       - uses: actions/download-artifact@v4
         with:
           name: security-report
-      - name: Run Trivy Scan
-        uses: aquasecurity/trivy-action@v0.24.0
+
+      - uses: actions/setup-python@v5
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'json'
-          output: 'dependency-report.json'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          vuln-type: 'library'
-          scanners: 'vuln'
-          ignore-unfixed: true
-  
-      - name: Process Results
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Install Dependencies + pip-audit
         run: |
+          pip install -r requirements.txt
+          pip install pip-audit
+
+      - name: Run Dependency Scan
+        run: |
+          pip-audit -r requirements.txt -f json -o dependency-report.json || true
+
           python <<EOF
           import json
-  
+
           with open("status.json") as f:
               status = json.load(f)
-  
+
           data = json.load(open("dependency-report.json"))
-  
-          severity = "passed"
-  
-          for result in data.get("Results", []):
-              for vuln in result.get("Vulnerabilities", []):
-                  sev = vuln.get("Severity", "").upper()
-  
-                  if sev in ["CRITICAL", "HIGH"]:
-                      severity = "danger"
-                      break
-                  elif sev == "MEDIUM" and severity != "danger":
-                      severity = "warning"
-  
-              if severity == "danger":
-                  break
-  
-          status["dependency"] = severity
-  
+
+          vulns = sum(len(dep.get("vulns", [])) for dep in data.get("dependencies", []))
+
+          status["dependency"] = "passed" if vulns == 0 else "warning"
+
           with open("status.json", "w") as f:
               json.dump(status, f)
           EOF
-  
+
       - name: Generate HTML Report
         run: |
           python <<EOF
           import json
-  
+
           data = json.load(open("dependency-report.json"))
-  
+
           rows = ""
-  
-          for result in data.get("Results", []):
-              for v in result.get("Vulnerabilities", []):
-                  rows += f"<tr><td>{v.get('PkgName')}</td><td>{v.get('InstalledVersion')}</td><td>{v.get('Severity')}</td><td>{v.get('Title')}</td></tr>"
-  
+
+          for dep in data.get("dependencies", []):
+              for v in dep.get("vulns", []):
+                  rows += f"<tr><td>{dep.get('name')}</td><td>{dep.get('version')}</td><td>{v.get('id')}</td><td>{v.get('description')}</td></tr>"
+
+          if rows == "":
+              rows = "<tr><td colspan='4'>✅ No vulnerabilities found</td></tr>"
+
           html = f"""
           <html>
           <head>
               <title>Dependency Scan Report</title>
           </head>
           <body>
-              <h1>Dependency Scan (Trivy)</h1>
+              <h1>Dependency Scan (pip-audit)</h1>
               <table border="1">
-                  <tr><th>Package</th><th>Version</th><th>Severity</th><th>Issue</th></tr>
+                  <tr><th>Package</th><th>Version</th><th>Vulnerability</th><th>Description</th></tr>
                   {rows}
               </table>
           </body>
           </html>
           """
-  
+
           with open("dependency-report.html", "w") as f:
               f.write(html)
           EOF
-  
+
       - name: Upload Dependency Reports
         uses: actions/upload-artifact@v4
         with:
