@@ -200,22 +200,65 @@ jobs:
       - name: Run Dependency Scan
         run: |
           pip-audit -r requirements.txt -f json -o dependency-report.json || true
-
+      
           python <<EOF
           import json
-
+      
           with open("status.json") as f:
               status = json.load(f)
-
+      
           data = json.load(open("dependency-report.json"))
-          vulns = sum(len(dep.get("vulns", [])) for dep in data.get("dependencies", []))
-
-          status["dependency"] = "passed" if vulns == 0 else "warning"
-
+      
+          vulns = []
+          for dep in data.get("dependencies", []):
+              for v in dep.get("vulns", []):
+                  vulns.append({
+                      "package": dep.get("name"),
+                      "version": dep.get("version"),
+                      "id": v.get("id"),
+                      "description": v.get("description", "N/A")
+                  })
+      
+          # Update status
+          status["dependency"] = "passed" if len(vulns) == 0 else "warning"
+      
           with open("status.json", "w") as f:
               json.dump(status, f)
+      
+          # Generate HTML report
+          html = """
+          <html>
+          <head>
+              <title>Dependency Scan Report</title>
+              <style>
+                  body { font-family: Arial; padding: 20px; }
+                  h1 { color: #333; }
+                  .passed { color: green; }
+                  .warning { color: red; }
+                  table { border-collapse: collapse; width: 100%; }
+                  th, td { border: 1px solid #ccc; padding: 8px; }
+                  th { background: #f4f4f4; }
+              </style>
+          </head>
+          <body>
+          """
+      
+          html += f"<h1>Dependency Scan Result: <span class='{status['dependency']}'>{status['dependency'].upper()}</span></h1>"
+      
+          if vulns:
+              html += "<table><tr><th>Package</th><th>Version</th><th>Vulnerability</th><th>Description</th></tr>"
+              for v in vulns:
+                  html += f"<tr><td>{v['package']}</td><td>{v['version']}</td><td>{v['id']}</td><td>{v['description']}</td></tr>"
+              html += "</table>"
+          else:
+              html += "<p class='passed'>No vulnerabilities found 🎉</p>"
+      
+          html += "</body></html>"
+      
+          with open("dependency-report.html", "w") as f:
+              f.write(html)
+      
           EOF
-
       - name: Upload Dependency Reports
         uses: actions/upload-artifact@v4
         with:
