@@ -102,20 +102,30 @@ jobs:
       - name: Run Lint
         run: |
           mkdir -p flake8-report
+          # Generate the HTML report
           flake8 . --format=html --htmldir=flake8-report || true
-          ERRORS=$(flake8 . --count --max-line-length=120 || true)
+          
+          # Get ONLY the numerical count of errors to avoid string errors
+          COUNT=$(flake8 . --count --max-line-length=120 || echo "0")
+          # Clean the variable to ensure it only contains digits
+          CLEAN_COUNT=$(echo $COUNT | grep -o '[0-9]\+' | head -1 || echo "0")
 
           python <<EOF
           import json
+          import os
+
           with open("status.json") as f:
               status = json.load(f)
           
-          error_count = int("$ERRORS")
+          # Use the cleaned count from the environment variable
+          error_count = int(os.environ.get("LINT_COUNT", 0))
           status["lint"] = "passed" if error_count == 0 else "warning"
 
           with open("status.json", "w") as f:
               json.dump(status, f)
           EOF
+        env:
+          LINT_COUNT: ${{ env.CLEAN_COUNT }}
 
       - name: Upload Lint Report
         uses: actions/upload-artifact@v4
