@@ -189,6 +189,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: security-report
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
   
       - name: Run Trivy Scan
         uses: aquasecurity/trivy-action@v0.24.0
@@ -196,6 +201,7 @@ jobs:
           scan-type: 'fs'
           format: 'json'
           output: 'dependency-report.json'
+          severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: true
   
       - name: Process Results
