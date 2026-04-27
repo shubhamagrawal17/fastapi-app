@@ -95,24 +95,24 @@ jobs:
       - name: Run Lint
         run: |
           flake8 . --format=html --htmldir=flake8-report || true
-      
+
           ERRORS=$(flake8 . --count --max-line-length=120 2>/dev/null | tail -n 1)
-      
-          echo "Flake8 Errors: $ERRORS"
-      
+
+          echo "Flake8 Errors Count: $ERRORS"
+
           python <<EOF
           import json
-      
+
           with open("status.json") as f:
               status = json.load(f)
-      
+
           try:
-              errors = int("$ERRORS")
+              errors = int("$ERRORS".strip())
           except:
               errors = 1
-      
+
           status["lint"] = "warning" if errors > 0 else "passed"
-      
+
           with open("status.json", "w") as f:
               json.dump(status, f)
           EOF
@@ -177,107 +177,99 @@ jobs:
 
 
 # =========================
-# 📦 DEPENDENCY SCAN
+# 📦 DEPENDENCY SCAN (TRIVY)
 # =========================
-dependency-scan:
-runs-on: ubuntu-latest
-needs: security
+  dependency-scan:
+    runs-on: ubuntu-latest
+    needs: security
 
-steps:
-  - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-  - uses: actions/download-artifact@v4
-    with:
-      name: security-report
+      - uses: actions/download-artifact@v4
+        with:
+          name: security-report
 
-  # Install Trivy
-  - name: Install Trivy
-    run: |
-      sudo apt-get update
-      sudo apt-get install -y wget
-      wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
-      sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.50.0_Linux-64bit.deb
+          sudo dpkg -i trivy_0.50.0_Linux-64bit.deb
 
-  # Run scan (filesystem = your repo, including requirements.txt)
-  - name: Run Dependency Scan (Trivy)
-    run: |
-      trivy fs . --format json -o dependency-report.json || true
+      - name: Run Dependency Scan
+        run: |
+          trivy fs . --format json -o dependency-report.json || true
 
-      python <<EOF
-      import json
+          python <<EOF
+          import json
 
-      with open("status.json") as f:
-          status = json.load(f)
+          with open("status.json") as f:
+              status = json.load(f)
 
-      data = json.load(open("dependency-report.json"))
+          data = json.load(open("dependency-report.json"))
 
-      severity = "passed"
+          severity = "passed"
 
-      for result in data.get("Results", []):
-          for vuln in result.get("Vulnerabilities", []):
-              sev = vuln.get("Severity", "").upper()
+          for result in data.get("Results", []):
+              for vuln in result.get("Vulnerabilities", []):
+                  sev = vuln.get("Severity", "").upper()
 
-              if sev in ["CRITICAL", "HIGH"]:
-                  severity = "danger"
+                  if sev in ["CRITICAL", "HIGH"]:
+                      severity = "danger"
+                      break
+                  elif sev == "MEDIUM" and severity != "danger":
+                      severity = "warning"
+
+              if severity == "danger":
                   break
-              elif sev == "MEDIUM" and severity != "danger":
-                  severity = "warning"
 
-          if severity == "danger":
-              break
+          status["dependency"] = severity
 
-      status["dependency"] = severity
+          with open("status.json", "w") as f:
+              json.dump(status, f)
+          EOF
 
-      with open("status.json", "w") as f:
-          json.dump(status, f)
-      EOF
+      - name: Generate HTML Report
+        run: |
+          python <<EOF
+          import json
 
-  # Generate HTML report
-  - name: Generate HTML Report
-    run: |
-      python <<EOF
-      import json
+          data = json.load(open("dependency-report.json"))
 
-      data = json.load(open("dependency-report.json"))
+          rows = ""
 
-      rows = ""
+          for result in data.get("Results", []):
+              for v in result.get("Vulnerabilities", []):
+                  rows += f"<tr><td>{v.get('PkgName')}</td><td>{v.get('InstalledVersion')}</td><td>{v.get('Severity')}</td><td>{v.get('Title')}</td></tr>"
 
-      for result in data.get("Results", []):
-          for v in result.get("Vulnerabilities", []):
-              rows += f"<tr><td>{v.get('PkgName')}</td><td>{v.get('InstalledVersion')}</td><td>{v.get('Severity')}</td><td>{v.get('Title')}</td></tr>"
+          html = f"""
+          <html>
+          <head>
+              <title>Dependency Scan Report</title>
+          </head>
+          <body>
+              <h1>Dependency Scan (Trivy)</h1>
+              <table border="1">
+                  <tr><th>Package</th><th>Version</th><th>Severity</th><th>Issue</th></tr>
+                  {rows}
+              </table>
+          </body>
+          </html>
+          """
 
-      html = f"""
-      <html>
-      <head>
-          <title>Dependency Scan Report</title>
-          <style>
-              body {{ font-family: Arial; padding: 20px; }}
-              table {{ border-collapse: collapse; width: 100%; }}
-              th, td {{ border: 1px solid #ccc; padding: 8px; }}
-              th {{ background: #f4f4f4; }}
-          </style>
-      </head>
-      <body>
-          <h1>Dependency Scan (Trivy)</h1>
-          <table>
-              <tr><th>Package</th><th>Version</th><th>Severity</th><th>Issue</th></tr>
-              {rows}
-          </table>
-      </body>
-      </html>
-      """
+          with open("dependency-report.html", "w") as f:
+              f.write(html)
+          EOF
 
-      with open("dependency-report.html", "w") as f:
-          f.write(html)
-      EOF
+      - name: Upload Dependency Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: |
+            dependency-report.*
+            status.json
 
-  - name: Upload Dependency Reports
-    uses: actions/upload-artifact@v4
-    with:
-      name: dependency-report
-      path: |
-        dependency-report.*
-        status.json
 
 # =========================
 # 🌍 DEPLOY REPORT DASHBOARD
@@ -309,7 +301,6 @@ steps:
           cp -r security-report/* site/security-report/ || true
           cp -r dependency-report/* site/dependency-report/ || true
 
-          # FINAL STATUS FILE
           cp dependency-report/status.json site/status.json
 
       - name: Deploy to GitHub Pages
