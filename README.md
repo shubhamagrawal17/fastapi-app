@@ -120,3 +120,128 @@ git push -u origin main
 ```
 
 ---
+
+# 🔐 Goal
+
+Let GitHub Actions authenticate to Azure **without passwords** and push images to your **Azure Container Registry (ACR)**.
+
+---
+
+# 🧭 1) Create App Registration (Service Principal)
+
+1. Go to **Azure Portal → Azure Active Directory**
+2. Open **App registrations → New registration**
+3. Name: `github-actions-acr`
+4. Click **Register**
+
+👉 After creation, copy:
+
+* **Application (client) ID**
+* **Directory (tenant) ID**
+
+---
+
+# 🔗 2) Add Federated Credential (OIDC)
+
+1. Open your new App Registration
+2. Go to **Certificates & secrets → Federated credentials**
+3. Click **Add credential**
+4. Choose **GitHub Actions deploying Azure resources**
+5. Fill:
+
+   * **Organization** → your GitHub username/org
+   * **Repository** → your repo name
+   * **Branch** → `main` (or your branch)
+6. Click **Add**
+
+👉 This links GitHub → Azure securely (no secrets)
+
+---
+
+# 🛡️ 3) Grant ACR Push Permission
+
+1. Go to your **Container Registry**
+2. Open **Access control (IAM)**
+3. Click **Add role assignment**
+4. Role: **AcrPush**
+5. Assign access to: **User, group, or service principal**
+6. Select your app: `github-actions-acr`
+7. Save
+
+---
+
+# 🔑 4) Add GitHub Secrets (only 3, no passwords)
+
+In your GitHub repo → **Settings → Secrets → Actions**
+
+Add:
+
+```text
+AZURE_CLIENT_ID
+AZURE_TENANT_ID
+AZURE_SUBSCRIPTION_ID
+```
+
+👉 Values come from:
+
+* App Registration (client + tenant)
+* Azure subscription page (subscription ID)
+
+---
+
+# 🚀 5) Use in GitHub Actions
+
+```yaml
+- name: Azure Login (OIDC)
+  uses: azure/login@v2
+  with:
+    client-id: ${{ secrets.AZURE_CLIENT_ID }}
+    tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+    subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+- name: Login to ACR
+  run: az acr login --name <ACR_NAME>
+
+- name: Build Image
+  run: docker build -t <ACR_NAME>.azurecr.io/fastapi-app:${{ github.sha }} .
+
+- name: Push Image
+  run: docker push <ACR_NAME>.azurecr.io/fastapi-app:${{ github.sha }}
+```
+
+---
+
+# 💡 Example
+
+If your registry is:
+
+```text
+myacr123.azurecr.io
+```
+
+Then:
+
+```bash
+docker build -t myacr123.azurecr.io/fastapi-app:latest .
+docker push myacr123.azurecr.io/fastapi-app:latest
+```
+
+---
+
+# ⚠️ Common mistakes
+
+* Using wrong repo/branch in federated credential
+* Forgetting **AcrPush role**
+* Using `myacr123` instead of `myacr123.azurecr.io`
+* Not granting permission to correct subscription
+
+---
+
+# 💯 Final Result
+
+You now have:
+
+* ❌ No passwords stored
+* ✅ Secure OIDC authentication
+* ✅ CI/CD pushing images to ACR
+
