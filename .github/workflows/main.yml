@@ -68,11 +68,11 @@ jobs:
         with:
           name: test-report
           path: |
-            report.xml   # JUnit test results (machine-readable, used by CI tools)
-            report.html  # Human-readable HTML test report
-            coverage.xml  # Coverage data in XML format (used for parsing)
-            htmlcov/      # Full HTML coverage report directory
-            status.json   # Central pipeline status file (shared across stages)
+            report.xml   
+            report.html  
+            coverage.xml  
+            htmlcov/      
+            status.json   
 
 
 # =========================
@@ -134,8 +134,8 @@ jobs:
         with:
           name: lint-report
           path: |
-            flake8-report # HTML lint report directory
-            status.json   # Updated pipeline status file
+            flake8-report 
+            status.json   
 
 
 # =========================
