@@ -1,5 +1,5 @@
 name: FastAPI CI/CD Pipeline
-'on': workflow_dispatch
+on: workflow_dispatch
 env:
   IMAGE_NAME: fastapi-app
 jobs:
@@ -54,8 +54,7 @@ jobs:
 
           # Create a centralized status file for the pipeline
 
-          # This file will be updated in later stages (lint, security,
-          dependency scan)
+          # This file will be updated in later stages (lint, security, dependency scan)
 
           with open("status.json", "w") as f:
               json.dump({
@@ -319,7 +318,7 @@ jobs:
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
       - name: Set Image Tag
-        run: >
+        run: |
           echo "IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/fastapi-app:${{
           github.sha }}" >> $GITHUB_ENV
 
