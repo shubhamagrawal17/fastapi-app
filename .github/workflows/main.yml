@@ -319,11 +319,9 @@ jobs:
           az acr login --name ${{ secrets.ACR_NAME }}
       - name: Set Image Tag
         run: |
-          echo "IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/fastapi-app:${{
-          github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/fastapi-app:${{github.sha }}" >> $GITHUB_ENV
 
-          echo "LATEST=${{ secrets.ACR_NAME }}.azurecr.io/fastapi-app:latest" >>
-          $GITHUB_ENV
+          echo "LATEST=${{ secrets.ACR_NAME }}.azurecr.io/fastapi-app:latest" >> $GITHUB_ENV
       - name: Build Image
         run: |
           docker build -t $IMAGE .
