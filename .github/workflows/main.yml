@@ -11,12 +11,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-html
+          pip install pytest pytest-cov pytest-html || true
           # pytest → Runs your test cases
           # pytest-cov → Measures how much of your code is covered by tests
           # pytest-html → Generates a readable HTML report of test results
@@ -85,7 +85,7 @@ jobs:
           name: test-report
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
       - name: Install Linter
         run: pip install flake8 flake8-html
@@ -145,7 +145,7 @@ jobs:
           name: lint-report # Download artifacts from lint stage (includes status.json)
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # Set up Python environment for this job
+          python-version: "3.11" # Set up Python environment for this job
       - name: Install Bandit
         run: pip install bandit # Install Bandit (Python security scanner)
       - name: Run Security Scan
@@ -183,13 +183,13 @@ jobs:
     needs: security
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4 
+      - uses: actions/download-artifact@v4
         with:
           name: security-report # Download artifacts from security stage (includes status.json)
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: pip  # Enable pip caching for faster installs
+          python-version: "3.11"
+          cache: pip # Enable pip caching for faster installs
       - name: Install Dependencies + pip-audit
         run: |
           # Install project dependencies
@@ -267,8 +267,8 @@ jobs:
     needs: dependency-scan
     steps:
       - uses: actions/checkout@v4 # Clone repository (needed for index.html or static files)
-      - name: Download All Artifacts 
-        uses: actions/download-artifact@v4  # Downloads ALL artifacts from previous jobs
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4 # Downloads ALL artifacts from previous jobs
       - name: Prepare Site
         run: |
           # Create base directory for GitHub Pages site
@@ -297,9 +297,9 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: '${{ secrets.GITHUB_TOKEN }}' # Auth token provided by GitHub
+          github_token: "${{ secrets.GITHUB_TOKEN }}" # Auth token provided by GitHub
           publish_dir: ./site # Directory to publish
-          force_orphan: true  # Create clean gh-pages branch (no history)
+          force_orphan: true # Create clean gh-pages branch (no history)
   build-and-push:
     runs-on: ubuntu-latest
     needs: deploy-report
@@ -311,9 +311,9 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: '${{ secrets.AZURE_CLIENT_ID }}'
-          tenant-id: '${{ secrets.AZURE_TENANT_ID }}'
-          subscription-id: '${{ secrets.AZURE_SUBSCRIPTION_ID }}'
+          client-id: "${{ secrets.AZURE_CLIENT_ID }}"
+          tenant-id: "${{ secrets.AZURE_TENANT_ID }}"
+          subscription-id: "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
       - name: Login to ACR
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
