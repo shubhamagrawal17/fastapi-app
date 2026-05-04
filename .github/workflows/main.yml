@@ -372,3 +372,6 @@ jobs:
       - name: Verify Rollout
         run: |
           kubectl rollout status deployment/fastapi-app
+      - name: Wait for External IP
+        run: |
+          kubectl get svc fastapi-service --watch
