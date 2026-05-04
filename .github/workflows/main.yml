@@ -385,4 +385,4 @@ jobs:
           done
       - name: Smoke Test
         run: |
-          curl -f http://$IP/docs || exit 1
+          curl -f http://$IP || exit 1
