@@ -88,7 +88,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install Linter
-        run: pip install flake8 flake8-html 
+        run: pip install flake8 flake8-html
       - name: Run Lint
         run: |
           flake8 . --format=html --htmldir=flake8-report || true
@@ -332,3 +332,40 @@ jobs:
         run: |
           docker push $IMAGE
           docker push $LATEST
+
+deploy-aks:
+  runs-on: ubuntu-latest
+  needs: build-and-push
+
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: "${{ secrets.AZURE_CLIENT_ID }}"
+        tenant-id: "${{ secrets.AZURE_TENANT_ID }}"
+        subscription-id: "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+
+    - name: Set AKS Context
+      run: |
+        az aks get-credentials \
+          --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
+          --name ${{ secrets.AKS_CLUSTER_NAME }} \
+          --overwrite-existing
+
+    - name: Set Image Tag
+      run: |
+        echo "IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/fastapi-app:${{ github.sha }}" >> $GITHUB_ENV
+
+    - name: Replace Image in Manifest
+      run: |
+        sed -i "s|IMAGE_PLACEHOLDER|$IMAGE|g" k8s/deployment.yaml
+
+    - name: Deploy to AKS
+      run: |
+        kubectl apply -f k8s/
+
+    - name: Verify Rollout
+      run: |
+        kubectl rollout status deployment/fastapi-app
