@@ -374,4 +374,15 @@ jobs:
           kubectl rollout status deployment/fastapi-app
       - name: Wait for External IP
         run: |
-          kubectl get svc fastapi-service --watch
+          for i in {1..30}; do
+            IP=$(kubectl get svc fastapi-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            if [ -n "$IP" ]; then
+              echo "External IP: $IP"
+              break
+            fi
+            echo "Waiting for external IP..."
+            sleep 10
+          done
+      - name: Smoke Test
+        run: |
+          curl -f http://$IP/docs || exit 1
