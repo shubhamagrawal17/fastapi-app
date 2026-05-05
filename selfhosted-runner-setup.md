@@ -26,7 +26,7 @@ az aks create --resource-group aks-rg --name myAKSCluster --location eastus --no
 # ⚙️ STEP 2 — Connect to Cluster
 
 ```bash
-az aks get-credentials --resource-group aks-rg --name myAKSCluster
+az aks get-credentials --resource-group aks-rg --name myAKSCluster --overwrite-existing
 ```
 
 ```bash
