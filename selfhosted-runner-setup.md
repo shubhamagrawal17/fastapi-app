@@ -1,9 +1,3 @@
-Perfect—here’s your **clean, end-to-end, copy-paste demo** with **ALL commands in single line** (including the missing cert-manager step that caused your error).
-
-Follow exactly in order 👇
-
----
-
 # 🚀 What You’ll Build
 
 * GitHub Actions job runs on **self-hosted runner**
@@ -12,23 +6,6 @@ Follow exactly in order 👇
 
 ---
 
-# 🧱 Architecture
-
-![Image](https://images.openai.com/static-rsc-4/JadWUF6Gan_evWU4Z-3v-P75dsCWOYDpFEjpVXDjG7cm_vrwdcfGpcXJZqiMR2Qg12j8sZ882jGIg4RJdJWAY4XuLjjOEQah3L9kuUAhnhZ-tti0d4kjj2tPeGihkGiwLUxaeUCvkjkJUzQ6GsMOXWje9MWGgVCdzqLhVjQv8EliL3YVErKBduCMYSQ1N5PQ?purpose=fullsize)
-
-![Image](https://images.openai.com/static-rsc-4/UKvsn8YLw6EjsBV6jg0UoPVXXZMnXFV5eXh_iU520NZNTl01WWTPtflSd_3MKo4ycbkdMtr4hXFfAh6aKM7ehm3L2PlpWTBGDZq5fi6DGgHXGq52d-fpfpdheRauF-mrPZ2yH-pm2dqxIbaBfKXQwQMTNRQDhewGSqtl7UsUC32ceMe7CMd7VDpS5kYXwQpd?purpose=fullsize)
-
-![Image](https://images.openai.com/static-rsc-4/ujkOcSnD2RrNjbXWsk_1yDIC7cNw8SNHLUDjdn96hWHsmR45e7z8lG9CGK-KaRQHs_Go9rDrk2FC9KwTRkEQbwTLRNipGTfV05wCVG9m4RabFa66cQZCWeysmRFKfH1tIc6HPqTqeKl4wn_yKAuFRxLBR4jTgIaRnQCKn6tiZsfRBegC5bcDuSgJpuvm6KJv?purpose=fullsize)
-
-![Image](https://images.openai.com/static-rsc-4/-InLZ_KpslQprHAFvzKcafK2JdDcCxAAJUbCkS_H0h1xfnl6jLApotBF9o5sYFlf7OGld2jZzyXX-bB9VUmHDwCQKgVCJpJaPx6oKMIVCUVgXsMRgt8rGHSMXUpUHI5p4Bo_fnTti8iyvvfzjWDvXjXwEyn72XhoMqle6OccNAwknBJfZK681qEIl7NTM9Pl?purpose=fullsize)
-
-![Image](https://images.openai.com/static-rsc-4/Mu7rSdVF_OcOjznGKerACbyhkRG5p6GcDL6BhoaNDDugPQzc9MpTZ5y-ELdMbMSfcZYtuAZ7Co1ROm6whz9w2nEl9Slhcy9mwRX4QGsClzYSPIb976JkYwJu2k5mF77PorNikAs0lgwUeOn7UXFtbpA1vIdKCVyquOZp7aziSSZGF6d9thiwn8plTuCjVupS?purpose=fullsize)
-
-![Image](https://images.openai.com/static-rsc-4/zimPec20AYA0avxRDDJIOoLoffX3X8dH8ZzUCt8TQ_eP8BhjUE3mfTDBaPw26z_rSo5OBRq6BRxwgP6EmM6VKF5fNpkrKTa2XTKmD43fkV8QbtHeyrMZDfREeFLmDqqjxMu87rjmi1Pabo0xk5DwSxX5lA5ZKtOh5oH7_E1e_0nRDSbFnj7l47sEB_fZnboO?purpose=fullsize)
-
-![Image](https://images.openai.com/static-rsc-4/RyyNe_oLlt8nbbwXqCfsFB3NK2vN4nR6i1ND7bykcDpY6mA1RAGT9myhksKCRgTnVsoRRI3D7aCxVlcMCxGa6kioszxN7g2R0w6KXkh3U4aeaJYcKRErFjrvxYTYLwIUMSQgNr39U6d_Litv67VHscoCRcXLmUECQq4TohBIuWHRMgAYNeU0amtVsZozjWpK?purpose=fullsize)
-
----
 
 # ⚙️ STEP 1 — Create AKS Cluster
 
@@ -58,9 +35,7 @@ kubectl get nodes
 
 ---
 
-# ⚠️ STEP 3 — Install cert-manager (MANDATORY FIX)
-
-👉 This fixes your error
+# STEP 3 — Install cert-manager (MANDATORY) - ARC needs TLS certificates for secure communication inside Kubernetes
 
 ```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.crds.yaml
@@ -86,7 +61,7 @@ kubectl get pods -n cert-manager
 
 ---
 
-# ⚙️ STEP 4 — Install ARC
+# ⚙️ STEP 4 — Install  Actions Runner Controller (ARC) - Actions Runner Controller is a Kubernetes operator that automatically creates and manages GitHub Actions runners as pods inside the cluster
 
 Using Actions Runner Controller
 
@@ -220,6 +195,3 @@ kubectl logs -n actions-runner-system <runner-pod-name>
 ```bash
 az group delete --name aks-rg --yes --no-wait
 ```
-
-
-Just tell me 👍
