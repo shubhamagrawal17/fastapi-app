@@ -61,7 +61,28 @@ kubectl get pods -n cert-manager
 
 ---
 
-# ⚙️ STEP 4 — Install  Actions Runner Controller (ARC) - Actions Runner Controller is a Kubernetes operator that automatically creates and manages GitHub Actions runners as pods inside the cluster
+---
+
+# 🔐 STEP 4 — Create GitHub PAT
+
+Go to GitHub:
+
+👉 Settings → Developer Settings → **Tokens (classic)**
+
+Permissions:
+
+* repo
+* workflow
+
+---
+
+# 🔐 STEP 5 — Create Kubernetes Secret
+
+```bash
+kubectl create secret generic controller-manager --namespace actions-runner-system --from-literal=github_token=YOUR_PAT_HERE
+```
+
+# ⚙️ STEP 6 — Install  Actions Runner Controller (ARC) - Actions Runner Controller is a Kubernetes operator that automatically creates and manages GitHub Actions runners as pods inside the cluster
 
 Using Actions Runner Controller
 
@@ -82,26 +103,6 @@ kubectl get pods -n actions-runner-system
 ```
 
 ---
-
-# 🔐 STEP 5 — Create GitHub PAT
-
-Go to GitHub:
-
-👉 Settings → Developer Settings → **Tokens (classic)**
-
-Permissions:
-
-* repo
-* workflow
-
----
-
-# 🔐 STEP 6 — Create Kubernetes Secret
-
-```bash
-kubectl create secret generic controller-manager --namespace actions-runner-system --from-literal=github_token=YOUR_PAT_HERE
-```
-
 ---
 
 # 🏃 STEP 7 — Create Runner Deployment
