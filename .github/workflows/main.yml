@@ -337,14 +337,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-push
     permissions:
-      id-token: write
-      contents: read
+      id-token: write  # Required for Azure OIDC authentication
+      contents: read  # Read access to repository
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v2  # Authenticate to Azure using service principal (OIDC)
         with:
           client-id: "${{ secrets.AZURE_CLIENT_ID }}"
           tenant-id: "${{ secrets.AZURE_TENANT_ID }}"
@@ -352,6 +352,7 @@ jobs:
 
       - name: Set AKS Context
         run: |
+          # Fetch AKS cluster credentials and configure kubectl context
           az aks get-credentials \
             --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} \
             --name ${{ secrets.AKS_CLUSTER_NAME }} \
@@ -359,11 +360,19 @@ jobs:
 
       - name: Set Image Tag
         run: |
+          # Create full image path using ACR + commit SHA and store in env variable
           echo "IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/fastapi-app:${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Replace Image in Manifest
         run: |
+          # Replace placeholder in Kubernetes deployment file with actual image
           sed -i "s|IMAGE_PLACEHOLDER|$IMAGE|g" k8s/deployment.yaml
+          #  Stream editor used to modify files programmatically.
+          #  -i Edits the file directly
+          #  s = substitute (replace)
+          #  IMAGE_PLACEHOLDER = text to find
+          #  $IMAGE = replacement value (your Docker image)
+          #  g = global (replace all occurrences in the file)
 
       - name: Deploy to AKS
         run: |
