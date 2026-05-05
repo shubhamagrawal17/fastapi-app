@@ -1,4 +1,4 @@
-# 🚀 What You’ll Build
+# 🚀 GitHub Actions Self-Hosted Runner on AKS (Step-by-Step Guide)
 
 * GitHub Actions job runs on **self-hosted runner**
 * Runner runs as a **pod inside AKS**
