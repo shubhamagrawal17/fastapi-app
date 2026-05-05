@@ -4,7 +4,7 @@ env:
   IMAGE_NAME: fastapi-app
 jobs:
   test:
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     env:
       PYTHONPATH: .
     steps:
