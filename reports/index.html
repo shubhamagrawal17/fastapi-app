@@ -1,214 +1,247 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 CI/CD Reports Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚀 AI DevOps Dashboard</title>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #1e3a8a, #7c3aed, #0f172a);
-            color: #f8fafc;
-            min-height: 100vh;
-        }
+<style>
+body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #1e3a8a, #7c3aed, #0f172a);
+    color: #fff;
+}
 
-        header {
-            text-align: center;
-            padding: 40px 20px;
-        }
+/* HEADER */
+header {
+    text-align: center;
+    padding: 30px;
+}
+h1 {
+    font-size: 34px;
+    background: linear-gradient(90deg,#facc15,#fb7185);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 
-        h1 {
-            font-size: 34px;
-            margin: 0;
-            background: linear-gradient(90deg, #facc15, #fb7185);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+/* GRID */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+    gap: 20px;
+    padding: 20px;
+}
 
-        p {
-            color: #e2e8f0;
-            margin-top: 10px;
-        }
+/* CARD */
+.card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    transition: 0.3s;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 25px;
-            padding: 30px;
-            max-width: 1100px;
-            margin: auto;
-        }
+/* STATUS COLORS */
+.success { color: #4ade80; }
+.warning { color: #facc15; }
+.danger { color: #f87171; }
 
-        .card {
-            background: rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 16px;
-            padding: 25px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
+/* BADGE */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+.badge-green { background: #16a34a; }
+.badge-yellow { background: #ca8a04; }
+.badge-red { background: #dc2626; }
 
-        .card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 15px 45px rgba(251, 113, 133, 0.35);
-        }
+/* BUTTON */
+a {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 18px;
+    background: linear-gradient(90deg,#f43f5e,#f59e0b);
+    border-radius: 8px;
+    color: white;
+    text-decoration: none;
+}
 
-        .status {
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin: 15px 0;
-        }
+/* AI BOX */
+.ai-box {
+    text-align: left;
+    background: rgba(0,0,0,0.4);
+    padding: 15px;
+    border-radius: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+    font-size: 13px;
+}
 
-        .success { color: #4ade80; }
-        .warning { color: #facc15; }
-        .danger { color: #f87171; }
+/* BIG CARDS */
+.highlight {
+    grid-column: span 2;
+}
+</style>
 
-        a {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 10px 18px;
-            background: linear-gradient(90deg, #f43f5e, #f59e0b);
-            border-radius: 8px;
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: 0.3s;
-        }
-
-        a:hover {
-            opacity: 0.9;
-            transform: scale(1.05);
-        }
-
-        /* AI BOX */
-        .ai-box {
-            text-align: left;
-            max-height: 250px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-        }
-
-        footer {
-            text-align: center;
-            padding: 40px 0;
-            font-size: 12px;
-            color: #cbd5f5;
-        }
-    </style>
 </head>
 
 <body>
 
 <header>
-    <h1>🚀 Pipeline Insights</h1>
-    <p id="lastUpdated">Fetching latest metrics...</p>
+<h1>🚀 AI DevOps Dashboard</h1>
+<p id="lastUpdated">Loading...</p>
 </header>
 
 <div class="grid">
 
-    <div class="card">
-        <h3>🧪 Test Report</h3>
-        <div id="testStatus" class="status">⌛ Loading...</div>
-        <a href="test-report/report.html">View Report</a>
-    </div>
+<!-- DEPLOYMENT -->
 
-    <div class="card">
-        <h3>📊 Coverage</h3>
-        <div id="coverageStatus" class="status">⌛ Loading...</div>
-        <a href="test-report/htmlcov/index.html">View Coverage</a>
-    </div>
+<div class="card highlight">
+<h3>🚀 Deployment Status</h3>
+<div id="deployStatus">Checking...</div>
+</div>
 
-    <div class="card">
-        <h3>🧹 Lint</h3>
-        <div id="lintStatus" class="status">⌛ Loading...</div>
-        <a href="lint-report/flake8-report/index.html">View Report</a>
-    </div>
+<!-- RISK -->
 
-    <div class="card">
-        <h3>🔐 Security</h3>
-        <div id="securityStatus" class="status">⌛ Loading...</div>
-        <a href="security-report/bandit-report.html">View Report</a>
-    </div>
+<div class="card highlight">
+<h3>🔥 Risk Score</h3>
+<div id="riskScore">Analyzing...</div>
+</div>
 
-    <div class="card">
-        <h3>📦 Dependency</h3>
-        <div id="dependencyStatus" class="status">⌛ Loading...</div>
-        <a href="dependency-report/dependency-report.html">View Report</a>
-    </div>
+<!-- TEST -->
 
-    <!-- 🤖 AI CARD -->
-    <div class="card">
-        <h3>🤖 AI Insights</h3>
-        <div id="aiStatus" class="status">⌛ Loading...</div>
-        <div id="aiContent" class="ai-box">Fetching AI insights...</div>
-        <a href="ai-report/ai-report.txt" target="_blank">View Full Report</a>
-    </div>
+<div class="card">
+<h3>🧪 Tests</h3>
+<div id="testStatus">...</div>
+<a href="test-report/report.html">View</a>
+</div>
+
+<!-- COVERAGE -->
+
+<div class="card">
+<h3>📊 Coverage</h3>
+<div id="coverageStatus">...</div>
+</div>
+
+<!-- LINT -->
+
+<div class="card">
+<h3>🧹 Lint</h3>
+<div id="lintStatus">...</div>
+<a href="lint-report/flake8-report/index.html">View</a>
+</div>
+
+<!-- SECURITY -->
+
+<div class="card">
+<h3>🔐 Security</h3>
+<div id="securityStatus">...</div>
+<a href="security-report/bandit-report.html">View</a>
+</div>
+
+<!-- DEPENDENCY -->
+
+<div class="card">
+<h3>📦 Dependency</h3>
+<div id="dependencyStatus">...</div>
+<a href="dependency-report/dependency-report.html">View</a>
+</div>
+
+<!-- AI -->
+
+<div class="card highlight">
+<h3>🤖 AI Insights</h3>
+
+<div id="aiSummary" class="badge badge-yellow">Analyzing...</div>
+
+<br><br>
+
+<div id="aiContent" class="ai-box">Loading AI insights...</div>
+
+<a href="ai-report/ai-report.txt" target="_blank">Full Report</a>
 
 </div>
 
-<footer>
-    © 2026 CI/CD Dashboard • Generated by GitHub Actions
-</footer>
+</div>
 
 <script>
-    // STATUS FETCH
-    fetch('status.json?t=' + new Date().getTime())
-        .then(res => res.json())
-        .then(data => {
 
-            function setStatus(id, value) {
-                const el = document.getElementById(id);
-                if (!el) return;
+// STATUS DATA
+fetch('status.json?t=' + Date.now())
+.then(res => res.json())
+.then(data => {
 
-                if (value === "passed") {
-                    el.innerHTML = "✔ Passed";
-                    el.className = "status success";
-                } else if (value === "warning") {
-                    el.innerHTML = "⚠ Warning";
-                    el.className = "status warning";
-                } else {
-                    el.innerHTML = "❌ Failed";
-                    el.className = "status danger";
-                }
-            }
+    function setStatus(id, value) {
+        const el = document.getElementById(id);
 
-            setStatus("testStatus", data.tests);
-            setStatus("lintStatus", data.lint);
-            setStatus("securityStatus", data.security);
-            setStatus("dependencyStatus", data.dependency);
+        if (value === "passed") {
+            el.innerHTML = "✔ Passed";
+            el.className = "success";
+        } else if (value === "warning") {
+            el.innerHTML = "⚠ Warning";
+            el.className = "warning";
+        } else {
+            el.innerHTML = "❌ Failed";
+            el.className = "danger";
+        }
+    }
 
-            const covEl = document.getElementById("coverageStatus");
-            const covValue = parseFloat(data.coverage) || 0;
-            covEl.innerHTML = "✔ " + covValue + "%";
-            covEl.className = covValue < 80 ? "status warning" : "status success";
+    setStatus("testStatus", data.tests);
+    setStatus("lintStatus", data.lint);
+    setStatus("securityStatus", data.security);
+    setStatus("dependencyStatus", data.dependency);
 
-            document.getElementById("lastUpdated").innerText =
-                "Last updated: " + new Date().toLocaleString();
-        });
+    let cov = parseFloat(data.coverage) || 0;
+    document.getElementById("coverageStatus").innerHTML = cov + "%";
 
-    // 🤖 AI FETCH
-    fetch('ai-report/ai-report.txt?t=' + new Date().getTime())
-        .then(res => res.text())
-        .then(text => {
-            document.getElementById("aiContent").innerText = text || "No AI insights available";
-            document.getElementById("aiStatus").innerHTML = "✔ Generated";
-            document.getElementById("aiStatus").className = "status success";
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById("aiContent").innerText = "⚠ Failed to load AI report";
-            document.getElementById("aiStatus").innerHTML = "❌ Error";
-            document.getElementById("aiStatus").className = "status danger";
-        });
+    // RISK LOGIC
+    let risk = "LOW";
+    if (data.lint === "warning" || data.security === "warning" || data.dependency === "warning") {
+        risk = "MEDIUM";
+    }
+    if (data.tests !== "passed") {
+        risk = "HIGH";
+    }
+
+    // DEPLOY LOGIC
+    let deploy = risk === "LOW" ? "SAFE TO DEPLOY ✅" : "NOT SAFE ❌";
+
+    document.getElementById("riskScore").innerHTML = risk;
+    document.getElementById("deployStatus").innerHTML = deploy;
+
+    document.getElementById("lastUpdated").innerText =
+        "Last updated: " + new Date().toLocaleString();
+});
+
+// AI DATA
+fetch('ai-report/ai-report.txt?t=' + Date.now())
+.then(res => res.text())
+.then(text => {
+
+    document.getElementById("aiContent").innerText = text;
+
+    if (text.toLowerCase().includes("warning") || text.toLowerCase().includes("issue")) {
+        document.getElementById("aiSummary").innerText = "⚠ Issues Detected";
+        document.getElementById("aiSummary").className = "badge badge-yellow";
+    } else {
+        document.getElementById("aiSummary").innerText = "✔ Healthy Pipeline";
+        document.getElementById("aiSummary").className = "badge badge-green";
+    }
+
+})
+.catch(() => {
+    document.getElementById("aiContent").innerText = "AI report not found";
+});
+
 </script>
 
 </body>
