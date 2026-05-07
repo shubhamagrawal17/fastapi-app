@@ -203,30 +203,37 @@ jobs:
       - name: Prepare AI Input
         run: cat status.json > ai-input.txt
 
-      - name: Call AI API
+      - name: Call AI API (FIXED)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          RESPONSE=$(curl https://api.openai.com/v1/responses \
-            -s \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"model\": \"gpt-4.1\",
-              \"input\": [
+          INPUT=$(cat ai-input.txt)
+      
+          JSON_PAYLOAD=$(jq -n \
+            --arg text "You are a senior DevOps engineer. Analyze this CI/CD pipeline result and suggest improvements:\n$INPUT" \
+            '{
+              model: "gpt-4.1",
+              input: [
                 {
-                  \"role\": \"user\",
-                  \"content\": [
+                  role: "user",
+                  content: [
                     {
-                      \"type\": \"text\",
-                      \"text\": \"You are a senior DevOps engineer. Analyze this CI/CD pipeline result and suggest improvements:\n$(cat ai-input.txt)\"
+                      type: "text",
+                      text: $text
                     }
                   ]
                 }
               ]
-            }")
+            }')
+      
+          curl https://api.openai.com/v1/responses \
+            -s \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD" \
+            > ai-response.json
 
-          echo "$RESPONSE" > ai-response.json
+          
 
       - name: Debug AI Response
         run: cat ai-response.json
