@@ -203,7 +203,7 @@ jobs:
       - name: Prepare AI Input
         run: cat status.json > ai-input.txt
 
-      - name: AI DevOps Analysis
+      - name: Call AI API
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -213,22 +213,46 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{
               \"model\": \"gpt-4.1\",
-              \"input\": \"You are a senior DevOps engineer. Analyze this CI/CD pipeline result and suggest improvements:\n$(cat ai-input.txt)\"
+              \"input\": [
+                {
+                  \"role\": \"user\",
+                  \"content\": [
+                    {
+                      \"type\": \"text\",
+                      \"text\": \"You are a senior DevOps engineer. Analyze this CI/CD pipeline result and suggest improvements:\n$(cat ai-input.txt)\"
+                    }
+                  ]
+                }
+              ]
             }")
 
           echo "$RESPONSE" > ai-response.json
 
-      - name: Extract AI Summary
+      - name: Debug AI Response
+        run: cat ai-response.json
+
+      - name: Extract AI Summary (Robust)
         run: |
           python <<EOF
           import json
+
           data = json.load(open("ai-response.json"))
-          try:
-              text = data["output"][0]["content"][0]["text"]
-          except:
-              text = "AI parsing failed"
+          text = ""
+
+          for item in data.get("output", []):
+              for content in item.get("content", []):
+                  if content.get("type") == "output_text":
+                      text += content.get("text", "") + "\\n"
+
+          if not text:
+              text = data.get("output_text", "")
+
+          if not text:
+              text = json.dumps(data, indent=2)
+
           with open("ai-report.txt", "w") as f:
               f.write(text)
+
           print(text)
           EOF
 
