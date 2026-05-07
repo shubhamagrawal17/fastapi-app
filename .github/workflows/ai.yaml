@@ -218,7 +218,7 @@ jobs:
                   role: "user",
                   content: [
                     {
-                      type: type: "input_text",
+                      type: "input_text",
                       text: $text
                     }
                   ]
