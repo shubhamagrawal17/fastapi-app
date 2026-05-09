@@ -9,4 +9,4 @@ pip-audit
 email-validator
 python-jose
 passlib[bcrypt]
-django==2.2.0
+#django==2.2.0
