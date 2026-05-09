@@ -271,10 +271,18 @@ jobs:
           Analyze this CI/CD pipeline result.
 
           Rules:
-          - If dependency vulnerabilities exist → decision = BLOCK
-          - If security issues exist → risk = HIGH
-          - If only lint warnings exist → risk = MEDIUM
-          - If all checks pass → risk = LOW
+          - If dependency vulnerabilities exist:
+            risk = HIGH
+            decision = BLOCK
+          - If security issues exist:
+            risk = HIGH
+            decision = BLOCK
+          - If only lint warnings exist:
+            risk = MEDIUM
+            decision = ALLOW
+          - If all checks pass:
+            risk = LOW
+            decision = ALLOW
 
           Return ONLY valid JSON:
 
