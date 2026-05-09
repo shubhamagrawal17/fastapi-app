@@ -1,23 +1,36 @@
 name: AI DevOps Deployment Pipeline
-'on':
-  workflow_dispatch: null
+
+on:
+  workflow_dispatch:
+
 env:
   IMAGE_NAME: fastapi-app
+
 jobs:
+
+  # =====================================================
+  # TEST STAGE
+  # =====================================================
+
   test:
     runs-on: ubuntu-22.04
+
     env:
       PYTHONPATH: .
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
+
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
           pip install pytest pytest-cov pytest-html || true
+
       - name: Run Tests
         run: |
           pytest \
@@ -28,6 +41,7 @@ jobs:
           --html=report.html \
           --self-contained-html \
           --cov-fail-under=80
+
       - name: Extract Coverage %
         run: |
           python <<EOF
@@ -48,6 +62,7 @@ jobs:
                   "dependency": "unknown"
               }, f)
           EOF
+
       - name: Upload Test Reports + Status
         uses: actions/upload-artifact@v4
         with:
@@ -58,336 +73,415 @@ jobs:
             coverage.xml
             htmlcov/
             status.json
-lint: null
-  runs-on: ubuntu-latest
-  needs: test
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: test-report
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    - name: Install Linter
-      run: |
-        pip install flake8 flake8-html
-    - name: Run Lint
-      run: |
-        flake8 . --format=html --htmldir=flake8-report || true
 
-        ERRORS=$(flake8 . --count --max-line-length=120 2>/dev/null | tail -n 1)
+  # =====================================================
+  # LINT STAGE
+  # =====================================================
 
-        python <<EOF
-        import json
+  lint:
+    runs-on: ubuntu-latest
+    needs: test
 
-        with open("status.json") as f:
-            status = json.load(f)
+    steps:
+      - uses: actions/checkout@v4
 
-        try:
-            errors = int("$ERRORS".strip())
-        except:
-            errors = 1
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-report
 
-        status["lint"] = "warning" if errors > 0 else "passed"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-        with open("status.json", "w") as f:
-            json.dump(status, f)
-        EOF
-    - name: Upload Lint Report
-      uses: actions/upload-artifact@v4
-      with:
-        name: lint-report
-        path: |
-          flake8-report
-          status.json
-security:
-  runs-on: ubuntu-latest
-  needs: lint
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: lint-report
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    - name: Install Bandit
-      run: |
-        pip install bandit
-    - name: Run Security Scan
-      run: |
-        bandit -r app/ -f json -o bandit-report.json || true
-        bandit -r app/ -f html -o bandit-report.html || true
+      - name: Install Linter
+        run: |
+          pip install flake8 flake8-html
 
-        python <<EOF
-        import json
+      - name: Run Lint
+        run: |
+          flake8 . --format=html --htmldir=flake8-report || true
 
-        with open("status.json") as f:
-            status = json.load(f)
+          ERRORS=$(flake8 . --count --max-line-length=120 2>/dev/null | tail -n 1)
 
-        data = json.load(open("bandit-report.json"))
+          python <<EOF
+          import json
 
-        issues = data.get("results", [])
+          with open("status.json") as f:
+              status = json.load(f)
 
-        status["security"] = "passed" if len(issues) == 0 else "warning"
+          try:
+              errors = int("$ERRORS".strip())
+          except:
+              errors = 1
 
-        with open("status.json", "w") as f:
-            json.dump(status, f)
-        EOF
-    - name: Upload Security Reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-report
-        path: |
-          bandit-report.*
-          status.json
-dependency-scan:
-  runs-on: ubuntu-latest
-  needs: security
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: security-report
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    - name: Install Dependencies + pip-audit
-      run: |
-        pip install -r requirements.txt
-        pip install pip-audit
-    - name: Run Dependency Scan
-      run: |
-        pip-audit -r requirements.txt -f json -o dependency-report.json || true
+          status["lint"] = "warning" if errors > 0 else "passed"
 
-        python <<EOF
-        import json
+          with open("status.json", "w") as f:
+              json.dump(status, f)
+          EOF
 
-        with open("status.json") as f:
-            status = json.load(f)
+      - name: Upload Lint Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: |
+            flake8-report
+            status.json
 
-        data = json.load(open("dependency-report.json"))
+  # =====================================================
+  # SECURITY STAGE
+  # =====================================================
 
-        vulns = sum(
-            len(dep.get("vulns", []))
-            for dep in data.get("dependencies", [])
-        )
+  security:
+    runs-on: ubuntu-latest
+    needs: lint
 
-        status["dependency"] = "passed" if vulns == 0 else "warning"
+    steps:
+      - uses: actions/checkout@v4
 
-        with open("status.json", "w") as f:
-            json.dump(status, f)
-        EOF
-    - name: Upload Dependency Reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependency-report
-        path: |
-          dependency-report.json
-          status.json
-ai-analysis:
-  runs-on: ubuntu-latest
-  needs: dependency-scan
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: dependency-report
-    - name: Prepare AI Input
-      run: |
-        cat status.json > ai-input.txt
-    - name: Install jq
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y jq
-    - name: Call OpenAI API
-      env:
-        OPENAI_API_KEY: '${{ secrets.OPENAI_API_KEY }}'
-      run: |
-        INPUT=$(cat ai-input.txt)
+      - uses: actions/download-artifact@v4
+        with:
+          name: lint-report
 
-        JSON_PAYLOAD=$(jq -n \
-          --arg text "You are a senior DevOps engineer.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-        Analyze this CI/CD pipeline result.
+      - name: Install Bandit
+        run: |
+          pip install bandit
 
-        Return ONLY valid JSON in this format:
+      - name: Run Security Scan
+        run: |
+          bandit -r app/ -f json -o bandit-report.json || true
+          bandit -r app/ -f html -o bandit-report.html || true
 
-        {
-          \"risk\": \"LOW | MEDIUM | HIGH\",
-          \"decision\": \"ALLOW | BLOCK\",
-          \"reason\": \"short explanation\"
-        }
+          python <<EOF
+          import json
 
-        Pipeline Results:
-        $INPUT" \
-        '{
-          model: "gpt-4.1",
-          input: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "input_text",
-                  text: $text
-                }
-              ]
-            }
-          ]
-        }')
+          with open("status.json") as f:
+              status = json.load(f)
 
-        curl https://api.openai.com/v1/responses \
-          -s \
-          -H "Authorization: Bearer '"$OPENAI_API_KEY"'" \
-          -H "Content-Type: application/json" \
-          -d "$JSON_PAYLOAD" \
-          > ai-response.json
-    - name: Debug AI Response
-      run: |
-        cat ai-response.json
-    - name: Extract AI Decision
-      run: |
-        python <<EOF
-        import json
-        import re
+          data = json.load(open("bandit-report.json"))
 
-        data = json.load(open("ai-response.json"))
+          issues = data.get("results", [])
 
-        text = ""
+          status["security"] = "passed" if len(issues) == 0 else "warning"
 
-        for item in data.get("output", []):
-            for content in item.get("content", []):
-                if content.get("type") == "output_text":
-                    text += content.get("text", "")
+          with open("status.json", "w") as f:
+              json.dump(status, f)
+          EOF
 
-        print(text)
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: |
+            bandit-report.*
+            status.json
 
-        match = re.search(r'\{.*\}', text, re.S)
+  # =====================================================
+  # DEPENDENCY SCAN
+  # =====================================================
 
-        if match:
-            clean_json = match.group(0)
-        else:
-            clean_json = json.dumps({
-                "risk": "HIGH",
-                "decision": "BLOCK",
-                "reason": "Invalid AI response"
-            })
+  dependency-scan:
+    runs-on: ubuntu-latest
+    needs: security
 
-        with open("ai-decision.json", "w") as f:
-            f.write(clean_json)
-        EOF
-    - name: Upload AI Decision
-      uses: actions/upload-artifact@v4
-      with:
-        name: ai-decision
-        path: ai-decision.json
-ai-deployment-gate:
-  runs-on: ubuntu-latest
-  needs: ai-analysis
-  steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: ai-decision
-    - name: AI Deployment Approval
-      run: |
-        python <<EOF
-        import json
-        import sys
+    steps:
+      - uses: actions/checkout@v4
 
-        data = json.load(open("ai-decision.json"))
+      - uses: actions/download-artifact@v4
+        with:
+          name: security-report
 
-        risk = data.get("risk", "HIGH")
-        decision = data.get("decision", "BLOCK")
-        reason = data.get("reason", "Unknown")
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-        print(f"Risk Level: {risk}")
-        print(f"Decision: {decision}")
-        print(f"Reason: {reason}")
+      - name: Install Dependencies + pip-audit
+        run: |
+          pip install -r requirements.txt
+          pip install pip-audit
 
-        if decision == "BLOCK":
-            print("❌ Deployment Blocked By AI")
-            sys.exit(1)
+      - name: Run Dependency Scan
+        run: |
+          pip-audit -r requirements.txt -f json -o dependency-report.json || true
 
-        print("✅ Deployment Approved")
-        EOF
-build-and-push:
-  runs-on: ubuntu-latest
-  needs: ai-deployment-gate
-  permissions:
-    id-token: write
-    contents: read
-  steps:
-    - uses: actions/checkout@v4
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        client-id: '${{ secrets.AZURE_CLIENT_ID }}'
-        tenant-id: '${{ secrets.AZURE_TENANT_ID }}'
-        subscription-id: '${{ secrets.AZURE_SUBSCRIPTION_ID }}'
-    - name: Login to Azure Container Registry
-      run: |
-        az acr login --name ${{ secrets.ACR_NAME }}
-    - name: Build Docker Image
-      run: |
-        docker build \
-          -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }} .
-    - name: Push Docker Image
-      run: |
-        docker push \
-          ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
-deploy-to-webapp:
-  runs-on: ubuntu-latest
-  needs: build-and-push
-  permissions:
-    id-token: write
-    contents: read
-  steps:
-    - name: Azure Login
-      uses: azure/login@v2
-      with:
-        client-id: '${{ secrets.AZURE_CLIENT_ID }}'
-        tenant-id: '${{ secrets.AZURE_TENANT_ID }}'
-        subscription-id: '${{ secrets.AZURE_SUBSCRIPTION_ID }}'
-    - name: Deploy Container to Azure Web App
-      uses: azure/webapps-deploy@v3
-      with:
-        app-name: '${{ secrets.WEBAPP_NAME }}'
-        images: >
-          ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{
-          github.run_number }}
-deploy-report:
-  runs-on: ubuntu-latest
-  needs: deploy-to-webapp
-  steps:
-    - uses: actions/checkout@v4
-    - name: Download All Artifacts
-      uses: actions/download-artifact@v4
-    - name: Prepare Site
-      run: |
-        mkdir -p site
+          python <<EOF
+          import json
 
-        cp reports/index.html site/index.html
+          with open("status.json") as f:
+              status = json.load(f)
 
-        touch site/.nojekyll
+          data = json.load(open("dependency-report.json"))
 
-        mkdir -p site/test-report
-        mkdir -p site/lint-report
-        mkdir -p site/security-report
-        mkdir -p site/dependency-report
-        mkdir -p site/ai-report
+          vulns = sum(
+              len(dep.get("vulns", []))
+              for dep in data.get("dependencies", [])
+          )
 
-        cp -r test-report/* site/test-report/ || true
-        cp -r lint-report/* site/lint-report/ || true
-        cp -r security-report/* site/security-report/ || true
-        cp -r dependency-report/* site/dependency-report/ || true
+          status["dependency"] = "passed" if vulns == 0 else "warning"
 
-        cp ai-decision/ai-decision.json site/ai-report/ || true
+          with open("status.json", "w") as f:
+              json.dump(status, f)
+          EOF
 
-        cp dependency-report/status.json site/status.json
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: '${{ secrets.GITHUB_TOKEN }}'
-        publish_dir: ./site
-        force_orphan: true
+      - name: Upload Dependency Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-report
+          path: |
+            dependency-report.json
+            status.json
+
+  # =====================================================
+  # AI ANALYSIS
+  # =====================================================
+
+  ai-analysis:
+    runs-on: ubuntu-latest
+    needs: dependency-scan
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dependency-report
+
+      - name: Prepare AI Input
+        run: |
+          cat status.json > ai-input.txt
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Call OpenAI API
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          INPUT=$(cat ai-input.txt)
+
+          JSON_PAYLOAD=$(jq -n \
+            --arg text "You are a senior DevOps engineer.
+
+          Analyze this CI/CD pipeline result.
+
+          Return ONLY valid JSON in this format:
+
+          {
+            \"risk\": \"LOW | MEDIUM | HIGH\",
+            \"decision\": \"ALLOW | BLOCK\",
+            \"reason\": \"short explanation\"
+          }
+
+          Pipeline Results:
+          $INPUT" \
+          '{
+            model: "gpt-4.1",
+            input: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "input_text",
+                    text: $text
+                  }
+                ]
+              }
+            ]
+          }')
+
+          curl https://api.openai.com/v1/responses \
+            -s \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD" \
+            > ai-response.json
+
+      - name: Debug AI Response
+        run: |
+          cat ai-response.json
+
+      - name: Extract AI Decision
+        run: |
+          python <<EOF
+          import json
+          import re
+
+          data = json.load(open("ai-response.json"))
+
+          text = ""
+
+          for item in data.get("output", []):
+              for content in item.get("content", []):
+                  if content.get("type") == "output_text":
+                      text += content.get("text", "")
+
+          print(text)
+
+          match = re.search(r'\{.*\}', text, re.S)
+
+          if match:
+              clean_json = match.group(0)
+          else:
+              clean_json = json.dumps({
+                  "risk": "HIGH",
+                  "decision": "BLOCK",
+                  "reason": "Invalid AI response"
+              })
+
+          with open("ai-decision.json", "w") as f:
+              f.write(clean_json)
+          EOF
+
+      - name: Upload AI Decision
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-decision
+          path: ai-decision.json
+
+  # =====================================================
+  # AI DEPLOYMENT GATE
+  # =====================================================
+
+  ai-deployment-gate:
+    runs-on: ubuntu-latest
+    needs: ai-analysis
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ai-decision
+
+      - name: AI Deployment Approval
+        run: |
+          python <<EOF
+          import json
+          import sys
+
+          data = json.load(open("ai-decision.json"))
+
+          risk = data.get("risk", "HIGH")
+          decision = data.get("decision", "BLOCK")
+          reason = data.get("reason", "Unknown")
+
+          print(f"Risk Level: {risk}")
+          print(f"Decision: {decision}")
+          print(f"Reason: {reason}")
+
+          if decision == "BLOCK":
+              print("❌ Deployment Blocked By AI")
+              sys.exit(1)
+
+          print("✅ Deployment Approved")
+          EOF
+
+  # =====================================================
+  # BUILD & PUSH TO ACR
+  # =====================================================
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: ai-deployment-gate
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Build Docker Image
+        run: |
+          docker build \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }} .
+
+      - name: Push Docker Image
+        run: |
+          docker push \
+            ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
+
+  # =====================================================
+  # DEPLOY TO AZURE WEB APP
+  # =====================================================
+
+  deploy-to-webapp:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Container to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.WEBAPP_NAME }}
+          images: ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
+
+  # =====================================================
+  # DEPLOY REPORT DASHBOARD
+  # =====================================================
+
+  deploy-report:
+    runs-on: ubuntu-latest
+    needs: deploy-to-webapp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Prepare Site
+        run: |
+          mkdir -p site
+
+          cp reports/index.html site/index.html
+
+          touch site/.nojekyll
+
+          mkdir -p site/test-report
+          mkdir -p site/lint-report
+          mkdir -p site/security-report
+          mkdir -p site/dependency-report
+          mkdir -p site/ai-report
+
+          cp -r test-report/* site/test-report/ || true
+          cp -r lint-report/* site/lint-report/ || true
+          cp -r security-report/* site/security-report/ || true
+          cp -r dependency-report/* site/dependency-report/ || true
+
+          cp ai-decision/ai-decision.json site/ai-report/ || true
+
+          cp dependency-report/status.json site/status.json
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          force_orphan: true
