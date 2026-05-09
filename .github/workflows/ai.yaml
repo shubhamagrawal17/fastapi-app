@@ -270,7 +270,13 @@ jobs:
 
           Analyze this CI/CD pipeline result.
 
-          Return ONLY valid JSON in this format:
+          Rules:
+          - If dependency vulnerabilities exist → decision = BLOCK
+          - If security issues exist → risk = HIGH
+          - If only lint warnings exist → risk = MEDIUM
+          - If all checks pass → risk = LOW
+
+          Return ONLY valid JSON:
 
           {
             \"risk\": \"LOW | MEDIUM | HIGH\",
