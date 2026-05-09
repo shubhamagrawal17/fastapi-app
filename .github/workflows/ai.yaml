@@ -17,7 +17,7 @@ jobs:
 test:
 runs-on: ubuntu-22.04
 
-```
+
 env:
   PYTHONPATH: .
 
@@ -134,7 +134,7 @@ steps:
       path: |
         flake8-report
         status.json
-```
+
 
 # =====================================================
 
@@ -146,7 +146,7 @@ security:
 runs-on: ubuntu-latest
 needs: lint
 
-```
+
 steps:
   - uses: actions/checkout@v4
 
@@ -190,7 +190,7 @@ steps:
       path: |
         bandit-report.*
         status.json
-```
+
 
 # =====================================================
 
@@ -261,7 +261,7 @@ ai-analysis:
 runs-on: ubuntu-latest
 needs: dependency-scan
 
-```
+
 steps:
   - uses: actions/checkout@v4
 
@@ -362,7 +362,6 @@ steps:
     with:
       name: ai-decision
       path: ai-decision.json
-```
 
 # =====================================================
 
@@ -374,7 +373,7 @@ ai-deployment-gate:
 runs-on: ubuntu-latest
 needs: ai-analysis
 
-```
+
 steps:
   - uses: actions/download-artifact@v4
     with:
@@ -402,7 +401,7 @@ steps:
 
       print("✅ Deployment Approved")
       EOF
-```
+
 
 # =====================================================
 
@@ -414,7 +413,6 @@ build-and-push:
 runs-on: ubuntu-latest
 needs: ai-deployment-gate
 
-```
 permissions:
   id-token: write
   contents: read
@@ -442,7 +440,7 @@ steps:
     run: |
       docker push \
         ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
-```
+
 
 # =====================================================
 
@@ -473,7 +471,7 @@ steps:
       app-name: ${{ secrets.WEBAPP_NAME }}
       images: |
         ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
-```
+
 
 # =====================================================
 
@@ -485,7 +483,7 @@ deploy-report:
 runs-on: ubuntu-latest
 needs: deploy-to-webapp
 
-```
+
 steps:
   - uses: actions/checkout@v4
 
@@ -521,4 +519,4 @@ steps:
       github_token: ${{ secrets.GITHUB_TOKEN }}
       publish_dir: ./site
       force_orphan: true
-```
+
