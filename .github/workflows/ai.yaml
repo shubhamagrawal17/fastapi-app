@@ -5,6 +5,9 @@ on:
 
 env:
   IMAGE_NAME: fastapi-app
+  SECRET_KEY: testsecretkey
+  APP_USERNAME: admin
+  APP_PASSWORD: admin123
 
 jobs:
 
