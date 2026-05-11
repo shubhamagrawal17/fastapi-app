@@ -165,7 +165,7 @@
     <a class="nav-item active"><i class="fas fa-chart-line"></i> Dashboard</a>
     <a href="test-report/report.html" target="_blank" class="nav-item"><i class="fas fa-vial"></i> Test Suite</a>
     <a href="security-report/bandit-report.html" target="_blank" class="nav-item"><i class="fas fa-shield-halved"></i> Security</a>
-    <a href="lint-report/flake8-report/index.html" target="_blank" class="nav-item"><i class="fas fa-code"></i> Code Quality</a>
+    <a href="lint-report/index.html" target="_blank" class="nav-item"><i class="fas fa-code"></i> Code Quality</a>
 </nav>
 
 <main>
@@ -178,7 +178,6 @@
     </div>
 
     <div class="dashboard-grid">
-        <!-- RELEASE RISK -->
         <div class="card span-2">
             <div>
                 <h3>Production Readiness</h3>
@@ -187,7 +186,6 @@
             <div id="deployStatus" class="status-pill">Analyzing...</div>
         </div>
 
-        <!-- COVERAGE -->
         <div class="card">
             <h3>Test Coverage</h3>
             <div id="coverageStatus" class="big-stat">0%</div>
@@ -197,42 +195,36 @@
             <a href="test-report/report.html" target="_blank" class="report-link">Detailed Coverage <i class="fas fa-chevron-right"></i></a>
         </div>
 
-        <!-- HEALTH -->
         <div class="card">
             <h3>Build Stability</h3>
             <div id="testStatus" class="big-stat" style="font-size: 1.4rem">--</div>
             <a href="test-report/report.html" target="_blank" class="report-link">Unit Test Logs <i class="fas fa-chevron-right"></i></a>
         </div>
 
-        <!-- SECURITY -->
         <div class="card">
             <h3>Security Scan</h3>
             <div id="securityStatus" style="margin-bottom: 10px;">Checking...</div>
             <a href="security-report/bandit-report.html" target="_blank" class="report-link">Bandit Report <i class="fas fa-external-link-alt"></i></a>
         </div>
 
-        <!-- LINT -->
         <div class="card">
             <h3>Code Quality</h3>
             <div id="lintStatus" style="margin-bottom: 10px;">Checking...</div>
-            <a href="lint-report/flake8-report/index.html" target="_blank" class="report-link">Flake8 Static Analysis <i class="fas fa-external-link-alt"></i></a>
+            <a href="lint-report/index.html" target="_blank" class="report-link">Flake8 Static Analysis <i class="fas fa-external-link-alt"></i></a>
         </div>
 
-        <!-- DEPS -->
         <div class="card">
             <h3>Dependencies</h3>
             <div id="dependencyStatus" style="margin-bottom: 10px;">Checking...</div>
-            <a href="dependency-report/dependency-report.html" target="_blank" class="report-link">Safety Audit <i class="fas fa-external-link-alt"></i></a>
+            <a href="dependency-report/dependency-report.txt" target="_blank" class="report-link">Safety Audit <i class="fas fa-external-link-alt"></i></a>
         </div>
 
-        <!-- LATENCY -->
         <div class="card">
             <h3>API Latency</h3>
             <div class="big-stat" style="font-size: 1.4rem">24ms</div>
             <div class="status-pill pill-success">Optimal</div>
         </div>
 
-        <!-- AI INSIGHTS -->
         <div class="card span-4">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
                 <h3 style="margin:0"><i class="fas fa-robot"></i> AI Diagnostic Insight</h3>
@@ -247,9 +239,16 @@
     const UI = {
         updateMetric: (id, status) => {
             const el = document.getElementById(id);
-            const isPassed = status === "passed";
-            el.innerHTML = isPassed ? "✔ PASSED" : "✘ " + status.toUpperCase();
-            el.className = `status-pill ${isPassed ? 'pill-success' : 'pill-danger'}`;
+            if (status === "passed") {
+                el.innerHTML = "✔ PASSED";
+                el.className = "status-pill pill-success";
+            } else if (status === "warning") {
+                el.innerHTML = "⚠ WARNING";
+                el.className = "status-pill pill-warning";
+            } else {
+                el.innerHTML = "✘ " + (status || "FAILED").toUpperCase();
+                el.className = "status-pill pill-danger";
+            }
         }
     };
 
@@ -266,13 +265,17 @@
             document.getElementById("coverageStatus").innerText = cov + "%";
             document.getElementById("coverageBar").style.width = cov + "%";
 
-            let risk = (data.tests === "passed" && data.security === "passed") ? "LOW" : "HIGH";
+            // Determine Overall Risk
+            let isDangerous = data.tests !== "passed" || data.security === "failed" || data.dependency === "failed";
+            let risk = isDangerous ? "HIGH" : (data.lint === "warning" ? "MEDIUM" : "LOW");
+            
             const riskEl = document.getElementById("riskScore");
             riskEl.innerText = risk + " RISK";
-            riskEl.style.color = risk === "LOW" ? "var(--success)" : "var(--danger)";
+            riskEl.style.color = risk === "LOW" ? "var(--success)" : (risk === "MEDIUM" ? "var(--warning)" : "var(--danger)");
 
-            document.getElementById("deployStatus").innerText = risk === "LOW" ? "STABLE FOR DEPLOY" : "BLOCKING ISSUES FOUND";
-            document.getElementById("deployStatus").className = `status-pill ${risk === "LOW" ? 'pill-success' : 'pill-danger'}`;
+            const statusEl = document.getElementById("deployStatus");
+            statusEl.innerText = risk === "HIGH" ? "BLOCKING ISSUES FOUND" : (risk === "MEDIUM" ? "STABLE WITH WARNINGS" : "STABLE FOR DEPLOY");
+            statusEl.className = `status-pill ${risk === "LOW" ? 'pill-success' : (risk === "MEDIUM" ? 'pill-warning' : 'pill-danger')}`;
 
             document.getElementById("lastUpdated").innerText = "Last Sync: " + new Date().toLocaleString();
         })
@@ -285,13 +288,16 @@
         .then(res => res.text())
         .then(text => {
             document.getElementById("aiContent").innerText = text;
-            if (text.toLowerCase().includes("warning")) {
+            if (text.toLowerCase().includes("block") || text.toLowerCase().includes("high")) {
+                document.getElementById("aiSummary").className = "status-pill pill-danger";
+                document.getElementById("aiSummary").innerText = "Deployment Blocked";
+            } else if (text.toLowerCase().includes("warning") || text.toLowerCase().includes("medium")) {
                 document.getElementById("aiSummary").className = "status-pill pill-warning";
-                document.getElementById("aiSummary").innerText = "Action Required";
+                document.getElementById("aiSummary").innerText = "Action Advised";
             }
         })
         .catch(() => {
-            document.getElementById("aiContent").innerText = "> AI Log file not found in ./ai-report/ai-report.txt";
+            document.getElementById("aiContent").innerText = "> AI Log file synchronizing...";
         });
 </script>
 
