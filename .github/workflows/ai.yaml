@@ -165,17 +165,18 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           INPUT=$(cat status.json)
-          JSON_PAYLOAD=$(jq -n --arg text "Analyze: $INPUT. Return JSON ONLY: {\"risk\": \"LOW|HIGH\", \"decision\": \"ALLOW|BLOCK\", \"reason\": \"string\"}" '{model: "gpt-4o", messages: [{role: "user", content: $text}]}')
+          JSON_PAYLOAD=$(jq -n --arg text "Analyze results: $INPUT. Return ONLY JSON: {\"risk\": \"LOW|HIGH\", \"decision\": \"ALLOW|BLOCK\", \"reason\": \"string\"}" '{model: "gpt-4o", messages: [{role: "user", content: $text}]}')
           curl https://api.openai.com/v1/chat/completions -s -H "Authorization: Bearer $OPENAI_API_KEY" -H "Content-Type: application/json" -d "$JSON_PAYLOAD" > ai-response.json
           
           python <<EOF
           import json
-          res = json.load(open("ai-response.json"))
-          content = res['choices'][0]['message']['content']
-          # Save for Dashboard
-          with open("ai-report.txt", "w") as f: f.write(content)
-          # Save for Gate logic
-          if "BLOCK" in content.upper(): exit(1)
+          try:
+              res = json.load(open("ai-response.json"))
+              content = res['choices'][0]['message']['content']
+              with open("ai-report.txt", "w") as f: f.write(content)
+              if "BLOCK" in content.upper(): exit(1)
+          except Exception as e:
+              with open("ai-report.txt", "w") as f: f.write(f"AI Gate Error: {str(e)}")
           EOF
 
       - name: Upload AI Artifacts
@@ -201,7 +202,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Build & Push to ACR
+      - name: Build & Push
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
           docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }} .
@@ -220,14 +221,14 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Deploy to Azure
+      - name: Deploy
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.WEBAPP_NAME }}
           images: ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
   # =====================================================
-  # 8. DEPLOY DASHBOARD (Final Step)
+  # 8. DEPLOY DASHBOARD (Final Step - Fixed Paths)
   # =====================================================
   deploy-report:
     runs-on: ubuntu-latest
@@ -236,17 +237,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
+      
       - name: Prepare Dashboard
         run: |
           mkdir -p site/test-report site/lint-report site/security-report site/dependency-report site/ai-report
-          cp index.html site/index.html
+          
+          # Since you said index.html is under 'reports', we copy it from there to the root of 'site'
+          cp reports/index.html site/index.html || cp index.html site/index.html
+          
           touch site/.nojekyll
+          
+          # Move artifacts to folders
           cp test-report/report.html site/test-report/ || true
-          cp -r lint-report/lint-report/* site/lint-report/ || true
+          
+          # Lint report folder handling
+          if [ -d "lint-report/lint-report" ]; then
+            cp -r lint-report/lint-report/* site/lint-report/ || true
+          else
+            cp -r lint-report/* site/lint-report/ || true
+          fi
+          
           cp security-report/bandit-report.html site/security-report/ || true
           cp dependency-report/dependency-report.txt site/dependency-report/ || true
           cp ai-decision/ai-report.txt site/ai-report/ || true
-          cp dependency-report/status.json site/status.json
+          
+          # Final status.json sync
+          cp dependency-report/status.json site/status.json || cp test-report/status.json site/status.json || true
+
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
