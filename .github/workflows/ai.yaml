@@ -465,7 +465,7 @@ jobs:
 
   deploy-report:
     runs-on: ubuntu-latest
-    needs: deploy-to-webapp
+    needs: ai-deployment-gate
 
     steps:
       - uses: actions/checkout@v4
