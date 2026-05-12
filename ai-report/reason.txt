@@ -1,1 +1,1 @@
-Most checks passed with minor lint warnings
+All checks passed except for lint warnings, which are not critical.

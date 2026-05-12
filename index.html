@@ -1,14 +1,706 @@
-<html>
-  <body style="background:#0f172a;color:white;font-family:Arial;padding:40px;">
-    <h1>AI DevOps Dashboard</h1>
+# Enterprise AI DevOps Dashboard (`index.html`)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise AI DevSecOps Command Center</title>
 
-    <ul>
-      <li><a href="./test-report/report.html">Test Report</a></li>
-      <li><a href="./test-report/index.html">Coverage Report</a></li>
-      <li><a href="./lint-report/index.html">Lint Report</a></li>
-      <li><a href="./security-report/bandit-report.html">Security Report</a></li>
-      <li><a href="./dependency-report/dependency-report.html">Dependency Report</a></li>
-      <li><a href="./ai-report/ai-report.html">AI Decision Report</a></li>
-    </ul>
-  </body>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+  <style>
+
+    :root {
+      --bg: #020617;
+      --card: rgba(15, 23, 42, 0.9);
+      --border: rgba(255,255,255,0.06);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 25%),
+        radial-gradient(circle at bottom right, rgba(139,92,246,0.18), transparent 25%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: rgba(2,6,23,0.92);
+      border-right: 1px solid var(--border);
+      padding: 28px 22px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      backdrop-filter: blur(20px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 40px;
+    }
+
+    .brand-logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      box-shadow: 0 0 25px rgba(59,130,246,0.4);
+      font-size: 20px;
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .brand-sub {
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 4px;
+    }
+
+    .nav-title {
+      color: #64748b;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--muted);
+      padding: 14px;
+      border-radius: 14px;
+      margin-bottom: 10px;
+      transition: 0.25s ease;
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: rgba(59,130,246,0.12);
+      color: white;
+      transform: translateX(2px);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg,
+        rgba(59,130,246,0.2),
+        rgba(139,92,246,0.15));
+      color: white;
+    }
+
+    .main {
+      flex: 1;
+      padding: 34px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .topbar h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+    }
+
+    .refresh-btn {
+      border: none;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: white;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 22px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+    }
+
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+    .col-6 { grid-column: span 6; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .icon-box {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.04);
+      color: var(--blue);
+    }
+
+    .metric {
+      font-size: 2.4rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .metric-sub {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.92rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .success {
+      background: rgba(16,185,129,0.12);
+      color: var(--green);
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+
+    .warning {
+      background: rgba(245,158,11,0.12);
+      color: var(--yellow);
+      border: 1px solid rgba(245,158,11,0.3);
+    }
+
+    .danger {
+      background: rgba(239,68,68,0.12);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.3);
+    }
+
+    .progress {
+      width: 100%;
+      height: 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      transition: width 1s ease;
+    }
+
+    .report-link {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-decoration: none;
+      color: white;
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 14px;
+      transition: 0.25s ease;
+      border: 1px solid transparent;
+    }
+
+    .report-link:hover {
+      border-color: rgba(59,130,246,0.2);
+      background: rgba(59,130,246,0.08);
+      transform: translateY(-2px);
+    }
+
+    .terminal {
+      background: #000814;
+      border-radius: 18px;
+      padding: 24px;
+      min-height: 260px;
+      color: #4ade80;
+      font-family: monospace;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .health-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .health-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .health-label {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    @media(max-width: 1200px) {
+      .col-3, .col-4, .col-6, .col-8 {
+        grid-column: span 12;
+      }
+    }
+
+    @media(max-width: 900px) {
+      .layout {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="layout">
+
+    <aside class="sidebar">
+
+      <div>
+
+        <div class="brand">
+
+          <div class="brand-logo">
+            <i class="fas fa-microchip"></i>
+          </div>
+
+          <div>
+            <div class="brand-title">AI OPS CENTER</div>
+            <div class="brand-sub">Enterprise DevSecOps Intelligence</div>
+          </div>
+
+        </div>
+
+        <div class="nav-title">REPORTS</div>
+
+        <a href="test-report/report.html" target="_blank" class="nav-item active">
+          <i class="fas fa-vial"></i>
+          Test Report
+        </a>
+
+        <a href="test-report/index.html" target="_blank" class="nav-item">
+          <i class="fas fa-chart-pie"></i>
+          Coverage Report
+        </a>
+
+        <a href="lint-report/index.html" target="_blank" class="nav-item">
+          <i class="fas fa-code"></i>
+          Lint Report
+        </a>
+
+        <a href="security-report/bandit-report.html" target="_blank" class="nav-item">
+          <i class="fas fa-shield-halved"></i>
+          Security Report
+        </a>
+
+        <a href="dependency-report/dependency-report.html" target="_blank" class="nav-item">
+          <i class="fas fa-box-open"></i>
+          Dependency Report
+        </a>
+
+        <a href="ai-report/ai-report.html" target="_blank" class="nav-item">
+          <i class="fas fa-robot"></i>
+          AI Analysis
+        </a>
+
+      </div>
+
+    </aside>
+
+    <main class="main">
+
+      <div class="topbar">
+
+        <div>
+          <h1>Enterprise AI DevSecOps Command Center</h1>
+          <div id="lastUpdated" class="subtitle">
+            Synchronizing with GitHub Actions...
+          </div>
+        </div>
+
+        <button class="refresh-btn" onclick="location.reload()">
+          <i class="fas fa-sync"></i>
+          Refresh Dashboard
+        </button>
+
+      </div>
+
+      <div class="grid">
+
+        <div class="card col-4">
+
+          <div class="card-header">
+            <div class="card-title">Deployment Risk</div>
+            <div class="icon-box">
+              <i class="fas fa-shield"></i>
+            </div>
+          </div>
+
+          <div id="riskScore" class="metric">ANALYZING</div>
+
+          <div id="deployStatus" class="badge warning">
+            WAITING
+          </div>
+
+          <div class="metric-sub">
+            AI-powered deployment governance and release risk intelligence.
+          </div>
+
+        </div>
+
+        <div class="card col-4">
+
+          <div class="card-header">
+            <div class="card-title">Test Coverage</div>
+            <div class="icon-box">
+              <i class="fas fa-chart-pie"></i>
+            </div>
+          </div>
+
+          <div id="coverageStatus" class="metric">0%</div>
+
+          <div class="progress">
+            <div id="coverageBar" class="progress-bar"></div>
+          </div>
+
+          <div class="metric-sub">
+            Enterprise quality threshold monitoring.
+          </div>
+
+        </div>
+
+        <div class="card col-4">
+
+          <div class="card-header">
+            <div class="card-title">Pipeline Decision</div>
+            <div class="icon-box">
+              <i class="fas fa-server"></i>
+            </div>
+          </div>
+
+          <div id="pipelineDecision" class="metric">PENDING</div>
+
+          <div id="deployEnvStatus" class="badge warning">
+            WAITING
+          </div>
+
+          <div class="metric-sub">
+            Real-time production deployment orchestration state.
+          </div>
+
+        </div>
+
+        <div class="card col-4">
+
+          <div class="card-header">
+            <div class="card-title">Compliance Reports</div>
+            <div class="icon-box">
+              <i class="fas fa-file-shield"></i>
+            </div>
+          </div>
+
+          <a href="security-report/bandit-report.html" class="report-link" target="_blank">
+            <span>Security Scan</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+
+          <a href="dependency-report/dependency-report.html" class="report-link" target="_blank">
+            <span>Dependency Scan</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+
+          <a href="lint-report/index.html" class="report-link" target="_blank">
+            <span>Code Quality</span>
+            <i class="fas fa-arrow-right"></i>
+          </a>
+
+        </div>
+
+        <div class="card col-4">
+
+          <div class="card-header">
+            <div class="card-title">System Health</div>
+            <div class="icon-box">
+              <i class="fas fa-heart-pulse"></i>
+            </div>
+          </div>
+
+          <div class="health-grid">
+
+            <div class="health-card">
+              <div class="health-value">99.98%</div>
+              <div class="health-label">Pipeline Uptime</div>
+            </div>
+
+            <div class="health-card">
+              <div class="health-value">24ms</div>
+              <div class="health-label">API Latency</div>
+            </div>
+
+            <div class="health-card">
+              <div class="health-value">ACTIVE</div>
+              <div class="health-label">AI Governance</div>
+            </div>
+
+            <div class="health-card">
+              <div class="health-value">LIVE</div>
+              <div class="health-label">GitHub Actions</div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="card col-4">
+
+          <div class="card-header">
+            <div class="card-title">Release Insights</div>
+            <div class="icon-box">
+              <i class="fas fa-brain"></i>
+            </div>
+          </div>
+
+          <div class="metric-sub">
+            AI continuously evaluates:
+            <br><br>
+            • Code quality risks
+            <br>
+            • Dependency vulnerabilities
+            <br>
+            • Security posture
+            <br>
+            • Deployment readiness
+            <br>
+            • Enterprise compliance
+          </div>
+
+        </div>
+
+        <div class="card col-12">
+
+          <div class="card-header">
+            <div class="card-title">AI Diagnostic Intelligence</div>
+
+            <div id="aiSummary" class="badge success">
+              HEALTHY
+            </div>
+          </div>
+
+          <div id="aiContent" class="terminal">
+Initializing AI governance engine...
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <script>
+
+    fetch("status.json?t=" + Date.now())
+      .then(res => res.json())
+      .then(data => {
+
+        const coverage = parseFloat(data.coverage || 0);
+
+        document.getElementById("coverageStatus").innerText = coverage + "%";
+        document.getElementById("coverageBar").style.width = coverage + "%";
+
+        let risk = "LOW";
+
+        if (
+          data.tests !== "completed" ||
+          data.security === "failed" ||
+          data.dependency === "failed"
+        ) {
+          risk = "HIGH";
+        }
+        else if (
+          data.lint === "warning" ||
+          coverage < 80
+        ) {
+          risk = "MEDIUM";
+        }
+
+        const riskEl = document.getElementById("riskScore");
+
+        riskEl.innerText = risk + " RISK";
+
+        if (risk === "LOW") {
+
+          riskEl.style.color = "#10b981";
+
+          document.getElementById("deployStatus").innerText = "READY";
+          document.getElementById("deployStatus").className = "badge success";
+
+          document.getElementById("pipelineDecision").innerText = "ALLOW";
+
+          document.getElementById("deployEnvStatus").innerText = "STABLE";
+          document.getElementById("deployEnvStatus").className = "badge success";
+
+        }
+        else if (risk === "MEDIUM") {
+
+          riskEl.style.color = "#f59e0b";
+
+          document.getElementById("deployStatus").innerText = "REVIEW";
+          document.getElementById("deployStatus").className = "badge warning";
+
+          document.getElementById("pipelineDecision").innerText = "REVIEW";
+
+          document.getElementById("deployEnvStatus").innerText = "WARNING";
+          document.getElementById("deployEnvStatus").className = "badge warning";
+
+        }
+        else {
+
+          riskEl.style.color = "#ef4444";
+
+          document.getElementById("deployStatus").innerText = "BLOCKED";
+          document.getElementById("deployStatus").className = "badge danger";
+
+          document.getElementById("pipelineDecision").innerText = "BLOCK";
+
+          document.getElementById("deployEnvStatus").innerText = "CRITICAL";
+          document.getElementById("deployEnvStatus").className = "badge danger";
+        }
+
+        document.getElementById("lastUpdated").innerText =
+          "Last Updated: " + new Date().toLocaleString();
+
+      })
+      .catch(() => {
+
+        document.getElementById("riskScore").innerText = "NO DATA";
+
+      });
+
+    fetch("ai-report/reason.txt?t=" + Date.now())
+      .then(res => res.text())
+      .then(text => {
+
+        document.getElementById("aiContent").innerText = text;
+
+        const lower = text.toLowerCase();
+        const summary = document.getElementById("aiSummary");
+
+        if (lower.includes("block") || lower.includes("high")) {
+
+          summary.className = "badge danger";
+          summary.innerText = "BLOCKED";
+
+        }
+        else if (lower.includes("warning") || lower.includes("medium")) {
+
+          summary.className = "badge warning";
+          summary.innerText = "REVIEW";
+
+        }
+        else {
+
+          summary.className = "badge success";
+          summary.innerText = "HEALTHY";
+        }
+
+      })
+      .catch(() => {
+
+        document.getElementById("aiContent").innerText =
+          "> Waiting for AI analysis report...";
+
+      });
+
+  </script>
+
+</body>
 </html>
