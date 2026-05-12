@@ -10,6 +10,7 @@ env:
   APP_PASSWORD: admin123
 
 jobs:
+
   # =====================================================
   # 1. TEST STAGE
   # =====================================================
@@ -19,6 +20,7 @@ jobs:
       PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -27,22 +29,37 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-html || true
+          pip install pytest pytest-cov pytest-html coverage || true
 
       - name: Run Tests
         run: |
-          pytest --junitxml=report.xml --cov=app --cov-report=xml --cov-report=html --html=report.html --self-contained-html --cov-fail-under=80
+          pytest \
+            --junitxml=report.xml \
+            --cov=app \
+            --cov-report=xml \
+            --cov-report=html \
+            --html=report.html \
+            --self-contained-html \
+            --cov-fail-under=80
 
-      - name: Extract Coverage
+      - name: Generate Coverage Summary
         run: |
           python <<EOF
           import xml.etree.ElementTree as ET
           import json
+
           tree = ET.parse("coverage.xml")
           root = tree.getroot()
           coverage = float(root.attrib.get("line-rate", 0)) * 100
+
           with open("status.json", "w") as f:
-              json.dump({"tests": "passed", "coverage": round(coverage, 2), "lint": "unknown", "security": "unknown", "dependency": "unknown"}, f)
+              json.dump({
+                  "tests": "passed",
+                  "coverage": round(coverage, 2),
+                  "lint": "unknown",
+                  "security": "unknown",
+                  "dependency": "unknown"
+              }, f)
           EOF
 
       - name: Upload Test Artifacts
@@ -51,6 +68,9 @@ jobs:
           name: test-report
           path: |
             report.html
+            htmlcov
+            coverage.xml
+            report.xml
             status.json
 
   # =====================================================
@@ -59,20 +79,47 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     needs: test
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: test-report
-      - name: Run Lint
+          path: artifacts/test-report
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Lint Dependencies
         run: |
           pip install flake8 flake8-html
-          flake8 . --format=html --htmldir=lint-report || true
+
+      - name: Run Lint
+        run: |
+          mkdir -p lint-report
+
+          flake8 . \
+            --format=html \
+            --htmldir=lint-report || true
+
           ERRORS=$(flake8 . --count --max-line-length=120 2>/dev/null | tail -n 1)
+
+          cp artifacts/test-report/status.json .
+
           python <<EOF
           import json
+
           status = json.load(open("status.json"))
-          status["lint"] = "passed" if int("$ERRORS".strip() or 0) == 0 else "warning"
+
+          try:
+              errors = int("${ERRORS}".strip())
+          except:
+              errors = 0
+
+          status["lint"] = "passed" if errors == 0 else "warning"
+
           json.dump(status, open("status.json", "w"))
           EOF
 
@@ -90,21 +137,43 @@ jobs:
   security:
     runs-on: ubuntu-latest
     needs: lint
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: lint-report
-      - name: Run Security Scan
+          path: artifacts/lint-report
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Security Tools
         run: |
           pip install bandit
+
+      - name: Run Security Scan
+        run: |
           bandit -r app/ -f html -o bandit-report.html || true
           bandit -r app/ -f json -o bandit-report.json || true
+
+          cp artifacts/lint-report/status.json .
+
           python <<EOF
           import json
+
           status = json.load(open("status.json"))
-          data = json.load(open("bandit-report.json"))
-          status["security"] = "passed" if len(data.get("results", [])) == 0 else "warning"
+
+          try:
+              data = json.load(open("bandit-report.json"))
+              issues = len(data.get("results", []))
+          except:
+              issues = 0
+
+          status["security"] = "passed" if issues == 0 else "warning"
+
           json.dump(status, open("status.json", "w"))
           EOF
 
@@ -114,6 +183,7 @@ jobs:
           name: security-report
           path: |
             bandit-report.html
+            bandit-report.json
             status.json
 
   # =====================================================
@@ -122,22 +192,81 @@ jobs:
   dependency-scan:
     runs-on: ubuntu-latest
     needs: security
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: security-report
-      - name: Run Dependency Scan
+          path: artifacts/security-report
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependency Scanner
         run: |
           pip install pip-audit
-          pip-audit -r requirements.txt > dependency-report.txt || true
+
+      - name: Run Dependency Scan
+        run: |
           pip-audit -r requirements.txt -f json -o dependency-report.json || true
+          pip-audit -r requirements.txt > dependency-report.txt || true
+
           python <<EOF
           import json
+
+          try:
+              data = json.load(open("dependency-report.json"))
+              vulns = sum(
+                  len(dep.get("vulns", []))
+                  for dep in data.get("dependencies", [])
+              )
+          except:
+              vulns = 0
+
+          html = f"""
+          <html>
+          <head>
+            <title>Dependency Scan Report</title>
+            <style>
+              body {{
+                font-family: Arial;
+                padding: 20px;
+                background: #f4f4f4;
+              }}
+              pre {{
+                background: white;
+                padding: 15px;
+                border-radius: 8px;
+              }}
+            </style>
+          </head>
+          <body>
+            <h1>Dependency Scan Report</h1>
+            <h2>Total Vulnerabilities: {vulns}</h2>
+            <pre>{open('dependency-report.txt').read()}</pre>
+          </body>
+          </html>
+          """
+
+          with open("dependency-report.html", "w") as f:
+              f.write(html)
+          EOF
+
+          cp artifacts/security-report/status.json status.json
+
+          python <<EOF
+          import json
+
           status = json.load(open("status.json"))
+
           data = json.load(open("dependency-report.json"))
           vulns = sum(len(dep.get("vulns", [])) for dep in data.get("dependencies", []))
+
           status["dependency"] = "passed" if vulns == 0 else "warning"
+
           json.dump(status, open("status.json", "w"))
           EOF
 
@@ -147,6 +276,8 @@ jobs:
           name: dependency-report
           path: |
             dependency-report.txt
+            dependency-report.json
+            dependency-report.html
             status.json
 
   # =====================================================
@@ -155,58 +286,119 @@ jobs:
   ai-analysis:
     runs-on: ubuntu-latest
     needs: dependency-scan
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           name: dependency-report
+          path: artifacts/dependency-report
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Call AI Engine
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          cp artifacts/dependency-report/status.json .
+
           INPUT=$(cat status.json)
-          JSON_PAYLOAD=$(jq -n --arg text "Analyze results: $INPUT. Return ONLY JSON: {\"risk\": \"LOW|HIGH\", \"decision\": \"ALLOW|BLOCK\", \"reason\": \"string\"}" '{model: "gpt-4o", messages: [{role: "user", content: $text}]}')
-          curl https://api.openai.com/v1/chat/completions -s -H "Authorization: Bearer $OPENAI_API_KEY" -H "Content-Type: application/json" -d "$JSON_PAYLOAD" > ai-response.json
-          
+
+          JSON_PAYLOAD=$(jq -n \
+            --arg text "Analyze results: $INPUT. Return ONLY JSON: {\"risk\": \"LOW|HIGH\", \"decision\": \"ALLOW|BLOCK\", \"reason\": \"string\"}" \
+            '{model: "gpt-4o", messages: [{role: "user", content: $text}]}')
+
+          curl https://api.openai.com/v1/chat/completions \
+            -s \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD" > ai-response.json
+
           python <<EOF
           import json
+
           try:
               res = json.load(open("ai-response.json"))
               content = res['choices'][0]['message']['content']
-              with open("ai-report.txt", "w") as f: f.write(content)
-              if "BLOCK" in content.upper(): exit(1)
+
+              with open("ai-report.txt", "w") as f:
+                  f.write(content)
+
+              html = f'''
+              <html>
+              <head>
+                <title>AI Analysis Report</title>
+                <style>
+                  body {{
+                    font-family: Arial;
+                    padding: 20px;
+                    background: #f4f4f4;
+                  }}
+                  pre {{
+                    background: white;
+                    padding: 15px;
+                    border-radius: 8px;
+                  }}
+                </style>
+              </head>
+              <body>
+                <h1>AI Deployment Decision</h1>
+                <pre>{content}</pre>
+              </body>
+              </html>
+              '''
+
+              with open("ai-report.html", "w") as f:
+                  f.write(html)
+
+              if "BLOCK" in content.upper():
+                  exit(1)
+
           except Exception as e:
-              with open("ai-report.txt", "w") as f: f.write(f"AI Gate Error: {str(e)}")
+              with open("ai-report.txt", "w") as f:
+                  f.write(f"AI Gate Error: {str(e)}")
           EOF
 
       - name: Upload AI Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ai-decision
-          path: ai-report.txt
+          path: |
+            ai-report.txt
+            ai-report.html
 
   # =====================================================
-  # 6. BUILD & PUSH (Only if AI Approves)
+  # 6. BUILD & PUSH
   # =====================================================
   build-and-push:
     runs-on: ubuntu-latest
     needs: ai-analysis
+
     permissions:
       id-token: write
       contents: read
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Build & Push
         run: |
           az acr login --name ${{ secrets.ACR_NAME }}
-          docker build -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }} .
-          docker push ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
+
+          docker build \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }} .
+
+          docker push \
+            ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
   # =====================================================
   # 7. DEPLOY TO WEB APP
@@ -214,6 +406,7 @@ jobs:
   deploy-to-webapp:
     runs-on: ubuntu-latest
     needs: build-and-push
+
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -221,6 +414,7 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Deploy
         uses: azure/webapps-deploy@v3
         with:
@@ -228,41 +422,126 @@ jobs:
           images: ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
   # =====================================================
-  # 8. DEPLOY DASHBOARD (Final Step - Fixed Paths)
+  # 8. DEPLOY REPORT DASHBOARD
   # =====================================================
   deploy-report:
     runs-on: ubuntu-latest
-    needs: [test, lint, security, dependency-scan, ai-analysis]
+
+    needs:
+      - test
+      - lint
+      - security
+      - dependency-scan
+      - ai-analysis
+
     if: always()
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
-      
+        with:
+          path: artifacts
+
       - name: Prepare Dashboard
         run: |
-          mkdir -p site/test-report site/lint-report site/security-report site/dependency-report site/ai-report
-          
-          # Since you said index.html is under 'reports', we copy it from there to the root of 'site'
-          cp reports/index.html site/index.html || cp index.html site/index.html
-          
+          mkdir -p site
+
+          mkdir -p site/test-report
+          mkdir -p site/coverage-report
+          mkdir -p site/lint-report
+          mkdir -p site/security-report
+          mkdir -p site/dependency-report
+          mkdir -p site/ai-report
+
           touch site/.nojekyll
-          
-          # Move artifacts to folders
-          cp test-report/report.html site/test-report/ || true
-          
-          # Lint report folder handling
-          if [ -d "lint-report/lint-report" ]; then
-            cp -r lint-report/lint-report/* site/lint-report/ || true
-          else
-            cp -r lint-report/* site/lint-report/ || true
-          fi
-          
-          cp security-report/bandit-report.html site/security-report/ || true
-          cp dependency-report/dependency-report.txt site/dependency-report/ || true
-          cp ai-decision/ai-report.txt site/ai-report/ || true
-          
-          # Final status.json sync
-          cp dependency-report/status.json site/status.json || cp test-report/status.json site/status.json || true
+
+          # Dashboard Home Page
+          cat > site/index.html <<EOF
+          <html>
+          <head>
+            <title>AI DevOps Dashboard</title>
+            <style>
+              body {
+                font-family: Arial;
+                background: #f4f4f4;
+                padding: 40px;
+              }
+
+              .card {
+                background: white;
+                padding: 20px;
+                margin-bottom: 20px;
+                border-radius: 10px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+              }
+
+              a {
+                text-decoration: none;
+                font-weight: bold;
+              }
+            </style>
+          </head>
+          <body>
+
+            <h1>🚀 AI DevOps Deployment Dashboard</h1>
+
+            <div class="card">
+              <h2>🧪 Test Report</h2>
+              <a href="./test-report/report.html">Open Report</a>
+            </div>
+
+            <div class="card">
+              <h2>📊 Coverage Report</h2>
+              <a href="./coverage-report/index.html">Open Coverage</a>
+            </div>
+
+            <div class="card">
+              <h2>🧹 Lint Report</h2>
+              <a href="./lint-report/index.html">Open Lint Report</a>
+            </div>
+
+            <div class="card">
+              <h2>🔒 Security Report</h2>
+              <a href="./security-report/bandit-report.html">Open Security Report</a>
+            </div>
+
+            <div class="card">
+              <h2>📦 Dependency Report</h2>
+              <a href="./dependency-report/dependency-report.html">Open Dependency Report</a>
+            </div>
+
+            <div class="card">
+              <h2>🤖 AI Analysis Report</h2>
+              <a href="./ai-report/ai-report.html">Open AI Report</a>
+            </div>
+
+          </body>
+          </html>
+          EOF
+
+          # Copy Test Reports
+          cp artifacts/test-report/report.html site/test-report/ || true
+
+          # Copy Coverage HTML
+          cp -r artifacts/test-report/htmlcov/* site/coverage-report/ || true
+
+          # Copy Lint Reports
+          cp -r artifacts/lint-report/lint-report/* site/lint-report/ || true
+
+          # Copy Security Reports
+          cp artifacts/security-report/bandit-report.html site/security-report/ || true
+
+          # Copy Dependency Reports
+          cp artifacts/dependency-report/dependency-report.html site/dependency-report/ || true
+          cp artifacts/dependency-report/dependency-report.txt site/dependency-report/ || true
+
+          # Copy AI Reports
+          cp artifacts/ai-decision/ai-report.html site/ai-report/ || true
+          cp artifacts/ai-decision/ai-report.txt site/ai-report/ || true
+
+          # Final Status
+          cp artifacts/dependency-report/status.json site/status.json || true
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
