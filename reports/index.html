@@ -1,74 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Enterprise AI DevOps Console</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
     <style>
         :root {
             --bg-dark: #0f172a;
-            --sidebar-bg: #1e293b;
+            --sidebar-bg: #111827;
             --accent-primary: #3b82f6;
+            --accent-secondary: #8b5cf6;
             --card-bg: rgba(30, 41, 59, 0.7);
             --text-main: #f8fafc;
+            --text-muted: #94a3b8;
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --border: rgba(255, 255, 255, 0.1);
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
             margin: 0;
-            font-family: 'Inter', -apple-system, sans-serif;
-            background-color: var(--bg-dark);
+            font-family: "Inter", -apple-system, sans-serif;
+            background: linear-gradient(135deg, #020617, #0f172a);
             color: var(--text-main);
             display: flex;
             min-height: 100vh;
             overflow: hidden;
         }
 
-        /* SIDEBAR */
+        /* =========================================
+           SIDEBAR
+        ========================================= */
         nav {
-            width: 240px;
-            background: var(--sidebar-bg);
+            width: 260px;
+            background: rgba(15, 23, 42, 0.95);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 24px;
             flex-shrink: 0;
+            backdrop-filter: blur(12px);
         }
 
         .logo {
             font-weight: 800;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             margin-bottom: 40px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             color: var(--accent-primary);
         }
 
+        .nav-section {
+            margin-bottom: 30px;
+        }
+
+        .nav-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
         .nav-item {
-            padding: 12px;
-            margin: 4px 0;
-            border-radius: 8px;
+            padding: 12px 14px;
+            margin: 6px 0;
+            border-radius: 10px;
             cursor: pointer;
-            transition: 0.2s;
-            color: #94a3b8;
+            transition: 0.2s ease;
+            color: var(--text-muted);
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 0.9rem;
+            font-size: 0.92rem;
         }
 
-        .nav-item:hover, .nav-item.active {
-            background: rgba(59, 130, 246, 0.1);
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.12);
             color: white;
+            transform: translateX(2px);
         }
 
-        /* MAIN CONTENT */
+        /* =========================================
+           MAIN
+        ========================================= */
         main {
             flex-grow: 1;
             padding: 30px;
@@ -82,7 +109,37 @@
             margin-bottom: 30px;
         }
 
-        /* GRID SYSTEM */
+        .header-bar h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .header-subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 6px;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+        }
+
+        /* =========================================
+           GRID
+        ========================================= */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -91,214 +148,627 @@
 
         .card {
             background: var(--card-bg);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
         }
 
-        .span-2 { grid-column: span 2; }
-        .span-4 { grid-column: span 4; }
+        .span-2 {
+            grid-column: span 2;
+        }
 
-        /* ELEMENTS */
-        h3 { margin: 0 0 15px 0; font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
-        .big-stat { font-size: 2.2rem; font-weight: 700; margin-bottom: 10px; }
-        
+        .span-4 {
+            grid-column: span 4;
+        }
+
+        /* =========================================
+           ELEMENTS
+        ========================================= */
+        h3 {
+            margin: 0 0 15px 0;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .big-stat {
+            font-size: 2.3rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .small-stat {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
         .status-pill {
             display: inline-flex;
             align-items: center;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
+            justify-content: center;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.72rem;
             font-weight: 700;
             width: fit-content;
+            letter-spacing: 0.4px;
         }
 
-        .pill-success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
-        .pill-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
-        .pill-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+        .pill-success {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .pill-danger {
+            background: rgba(239, 68, 68, 0.12);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .pill-warning {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
 
         .report-link {
-            margin-top: 15px;
+            margin-top: 18px;
             color: var(--accent-primary);
             text-decoration: none;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
 
-        .report-link:hover { text-decoration: underline; }
+        .report-link:hover {
+            text-decoration: underline;
+        }
+
+        .progress-wrapper {
+            width: 100%;
+            height: 8px;
+            background: #334155;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: 1s ease-out;
+        }
 
         .ai-terminal {
-            background: rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.45);
             color: #4ade80;
-            font-family: 'Fira Code', monospace;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            line-height: 1.5;
-            height: 150px;
+            font-family: "Fira Code", monospace;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            min-height: 220px;
             overflow-y: auto;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(255,255,255,0.05);
+            white-space: pre-wrap;
         }
 
-        .action-btn {
-            background: var(--accent-primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .health-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin-top: 15px;
+        }
+
+        .health-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        /* =========================================
+           RESPONSIVE
+        ========================================= */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .span-4 {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+                overflow: auto;
+            }
+
+            nav {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .span-2,
+            .span-4 {
+                grid-column: span 1;
+            }
         }
     </style>
 </head>
+
 <body>
 
 <nav>
-    <div class="logo"><i class="fas fa-microchip"></i> NEXUS AI</div>
-    <a class="nav-item active"><i class="fas fa-chart-line"></i> Dashboard</a>
-    <a href="test-report/report.html" target="_blank" class="nav-item"><i class="fas fa-vial"></i> Test Suite</a>
-    <a href="security-report/bandit-report.html" target="_blank" class="nav-item"><i class="fas fa-shield-halved"></i> Security</a>
-    <a href="lint-report/index.html" target="_blank" class="nav-item"><i class="fas fa-code"></i> Code Quality</a>
+    <div class="logo">
+        <i class="fas fa-microchip"></i>
+        NEXUS AI OPS
+    </div>
+
+    <div class="nav-section">
+        <div class="nav-title">Overview</div>
+
+        <a class="nav-item active">
+            <i class="fas fa-chart-line"></i>
+            Dashboard
+        </a>
+    </div>
+
+    <div class="nav-section">
+        <div class="nav-title">Reports</div>
+
+        <a href="test-report/report.html" target="_blank" class="nav-item">
+            <i class="fas fa-vial"></i>
+            Test Report
+        </a>
+
+        <a href="coverage-report/index.html" target="_blank" class="nav-item">
+            <i class="fas fa-chart-pie"></i>
+            Coverage Report
+        </a>
+
+        <a href="lint-report/index.html" target="_blank" class="nav-item">
+            <i class="fas fa-code"></i>
+            Code Quality
+        </a>
+
+        <a href="security-report/bandit-report.html" target="_blank" class="nav-item">
+            <i class="fas fa-shield-halved"></i>
+            Security Report
+        </a>
+
+        <a href="dependency-report/dependency-report.html" target="_blank" class="nav-item">
+            <i class="fas fa-box-open"></i>
+            Dependency Scan
+        </a>
+
+        <a href="ai-report/ai-report.html" target="_blank" class="nav-item">
+            <i class="fas fa-robot"></i>
+            AI Analysis
+        </a>
+    </div>
 </nav>
 
 <main>
+
     <div class="header-bar">
         <div>
-            <h1 style="margin:0; font-size: 1.5rem;">Enterprise Pipeline Console</h1>
-            <p id="lastUpdated" style="color:#64748b; font-size: 0.8rem">Synchronizing with GitHub Actions...</p>
+            <h1>Enterprise AI DevOps Console</h1>
+            <div id="lastUpdated" class="header-subtitle">
+                Synchronizing with GitHub Actions...
+            </div>
         </div>
-        <button class="action-btn" onclick="location.reload()"><i class="fas fa-sync"></i> Refresh</button>
+
+        <button class="action-btn" onclick="location.reload()">
+            <i class="fas fa-sync"></i>
+            Refresh Dashboard
+        </button>
     </div>
 
     <div class="dashboard-grid">
+
+        <!-- Risk -->
         <div class="card span-2">
-            <div>
-                <h3>Production Readiness</h3>
-                <div id="riskScore" class="big-stat">--</div>
+            <h3>Deployment Readiness</h3>
+
+            <div id="riskScore" class="big-stat">
+                ANALYZING
             </div>
-            <div id="deployStatus" class="status-pill">Analyzing...</div>
+
+            <div id="deployStatus" class="status-pill pill-warning">
+                WAITING FOR PIPELINE
+            </div>
+
+            <div class="metric-row">
+                <span>Pipeline Decision</span>
+                <span id="pipelineDecision">Pending</span>
+            </div>
         </div>
 
+        <!-- Coverage -->
         <div class="card">
             <h3>Test Coverage</h3>
-            <div id="coverageStatus" class="big-stat">0%</div>
-            <div style="width:100%; height:6px; background:#334155; border-radius:3px;">
-                <div id="coverageBar" style="width:0%; height:100%; background:var(--accent-primary); transition: 1.5s ease-out"></div>
+
+            <div id="coverageStatus" class="big-stat">
+                0%
             </div>
-            <a href="test-report/report.html" target="_blank" class="report-link">Detailed Coverage <i class="fas fa-chevron-right"></i></a>
+
+            <div class="progress-wrapper">
+                <div id="coverageBar" class="progress-bar"></div>
+            </div>
+
+            <a href="coverage-report/index.html" target="_blank" class="report-link">
+                Coverage HTML Report
+                <i class="fas fa-chevron-right"></i>
+            </a>
         </div>
 
+        <!-- Build -->
         <div class="card">
             <h3>Build Stability</h3>
-            <div id="testStatus" class="big-stat" style="font-size: 1.4rem">--</div>
-            <a href="test-report/report.html" target="_blank" class="report-link">Unit Test Logs <i class="fas fa-chevron-right"></i></a>
+
+            <div id="testStatus" class="small-stat">
+                Checking...
+            </div>
+
+            <a href="test-report/report.html" target="_blank" class="report-link">
+                Unit Test Results
+                <i class="fas fa-chevron-right"></i>
+            </a>
         </div>
 
+        <!-- Security -->
         <div class="card">
             <h3>Security Scan</h3>
-            <div id="securityStatus" style="margin-bottom: 10px;">Checking...</div>
-            <a href="security-report/bandit-report.html" target="_blank" class="report-link">Bandit Report <i class="fas fa-external-link-alt"></i></a>
+
+            <div id="securityStatus">
+                Checking...
+            </div>
+
+            <a href="security-report/bandit-report.html" target="_blank" class="report-link">
+                Bandit HTML Report
+                <i class="fas fa-external-link-alt"></i>
+            </a>
         </div>
 
+        <!-- Lint -->
         <div class="card">
             <h3>Code Quality</h3>
-            <div id="lintStatus" style="margin-bottom: 10px;">Checking...</div>
-            <a href="lint-report/index.html" target="_blank" class="report-link">Flake8 Static Analysis <i class="fas fa-external-link-alt"></i></a>
-        </div>
 
-        <div class="card">
-            <h3>Dependencies</h3>
-            <div id="dependencyStatus" style="margin-bottom: 10px;">Checking...</div>
-            <a href="dependency-report/dependency-report.txt" target="_blank" class="report-link">Safety Audit <i class="fas fa-external-link-alt"></i></a>
-        </div>
-
-        <div class="card">
-            <h3>API Latency</h3>
-            <div class="big-stat" style="font-size: 1.4rem">24ms</div>
-            <div class="status-pill pill-success">Optimal</div>
-        </div>
-
-        <div class="card span-4">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-                <h3 style="margin:0"><i class="fas fa-robot"></i> AI Diagnostic Insight</h3>
-                <span id="aiSummary" class="status-pill pill-success">Healthy Pipeline</span>
+            <div id="lintStatus">
+                Checking...
             </div>
-            <div id="aiContent" class="ai-terminal">Initializing AI Engine...</div>
+
+            <a href="lint-report/index.html" target="_blank" class="report-link">
+                Flake8 Static Analysis
+                <i class="fas fa-external-link-alt"></i>
+            </a>
         </div>
+
+        <!-- Dependency -->
+        <div class="card">
+            <h3>Dependency Scan</h3>
+
+            <div id="dependencyStatus">
+                Checking...
+            </div>
+
+            <a href="dependency-report/dependency-report.html" target="_blank" class="report-link">
+                Dependency Vulnerabilities
+                <i class="fas fa-external-link-alt"></i>
+            </a>
+        </div>
+
+        <!-- Deployment -->
+        <div class="card">
+            <h3>Deployment Status</h3>
+
+            <div id="deployEnv" class="small-stat">
+                Waiting...
+            </div>
+
+            <div id="deployEnvStatus" class="status-pill pill-warning">
+                Pending
+            </div>
+        </div>
+
+        <!-- Health -->
+        <div class="card span-2">
+            <h3>System Health</h3>
+
+            <div class="health-grid">
+                <div class="health-box">
+                    <div class="small-stat">24ms</div>
+                    <div class="metric-row">
+                        <span>API Latency</span>
+                    </div>
+                </div>
+
+                <div class="health-box">
+                    <div class="small-stat">99.98%</div>
+                    <div class="metric-row">
+                        <span>Pipeline Uptime</span>
+                    </div>
+                </div>
+
+                <div class="health-box">
+                    <div class="small-stat">4</div>
+                    <div class="metric-row">
+                        <span>Active Scanners</span>
+                    </div>
+                </div>
+
+                <div class="health-box">
+                    <div class="small-stat">LIVE</div>
+                    <div class="metric-row">
+                        <span>GitHub Actions</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI -->
+        <div class="card span-4">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0;">
+                    <i class="fas fa-robot"></i>
+                    AI Diagnostic Insight
+                </h3>
+
+                <span id="aiSummary" class="status-pill pill-success">
+                    Healthy Pipeline
+                </span>
+            </div>
+
+            <div id="aiContent" class="ai-terminal">
+Initializing AI Engine...
+            </div>
+        </div>
+
     </div>
 </main>
 
 <script>
+
     const UI = {
+
         updateMetric: (id, status) => {
+
             const el = document.getElementById(id);
+
+            if (!el) return;
+
             if (status === "passed") {
+
                 el.innerHTML = "✔ PASSED";
                 el.className = "status-pill pill-success";
+
             } else if (status === "warning") {
+
                 el.innerHTML = "⚠ WARNING";
                 el.className = "status-pill pill-warning";
-            } else {
-                el.innerHTML = "✘ " + (status || "FAILED").toUpperCase();
+
+            } else if (status === "failed") {
+
+                el.innerHTML = "✘ FAILED";
                 el.className = "status-pill pill-danger";
+
+            } else {
+
+                el.innerHTML = "⏳ PENDING";
+                el.className = "status-pill pill-warning";
             }
         }
     };
 
-    // Data Fetching
-    fetch('status.json?t=' + Date.now())
+    // =========================================
+    // STATUS.JSON
+    // =========================================
+
+    fetch("status.json?t=" + Date.now())
+
         .then(res => res.json())
+
         .then(data => {
+
             UI.updateMetric("testStatus", data.tests);
             UI.updateMetric("securityStatus", data.security);
             UI.updateMetric("lintStatus", data.lint);
             UI.updateMetric("dependencyStatus", data.dependency);
 
-            let cov = parseFloat(data.coverage) || 0;
-            document.getElementById("coverageStatus").innerText = cov + "%";
-            document.getElementById("coverageBar").style.width = cov + "%";
+            // Coverage
+            let coverage = parseFloat(data.coverage) || 0;
 
-            // Determine Overall Risk
-            let isDangerous = data.tests !== "passed" || data.security === "failed" || data.dependency === "failed";
-            let risk = isDangerous ? "HIGH" : (data.lint === "warning" ? "MEDIUM" : "LOW");
-            
+            document.getElementById("coverageStatus").innerText =
+                coverage + "%";
+
+            document.getElementById("coverageBar").style.width =
+                coverage + "%";
+
+            // Risk Engine
+            let risk = "LOW";
+
+            if (
+                data.tests !== "passed" ||
+                data.security === "failed" ||
+                data.dependency === "failed"
+            ) {
+                risk = "HIGH";
+            } else if (
+                data.lint === "warning" ||
+                coverage < 80
+            ) {
+                risk = "MEDIUM";
+            }
+
             const riskEl = document.getElementById("riskScore");
+
             riskEl.innerText = risk + " RISK";
-            riskEl.style.color = risk === "LOW" ? "var(--success)" : (risk === "MEDIUM" ? "var(--warning)" : "var(--danger)");
 
-            const statusEl = document.getElementById("deployStatus");
-            statusEl.innerText = risk === "HIGH" ? "BLOCKING ISSUES FOUND" : (risk === "MEDIUM" ? "STABLE WITH WARNINGS" : "STABLE FOR DEPLOY");
-            statusEl.className = `status-pill ${risk === "LOW" ? 'pill-success' : (risk === "MEDIUM" ? 'pill-warning' : 'pill-danger')}`;
+            riskEl.style.color =
+                risk === "LOW"
+                    ? "var(--success)"
+                    : risk === "MEDIUM"
+                    ? "var(--warning)"
+                    : "var(--danger)";
 
-            document.getElementById("lastUpdated").innerText = "Last Sync: " + new Date().toLocaleString();
+            // Deploy Status
+            const deployStatus =
+                document.getElementById("deployStatus");
+
+            if (risk === "LOW") {
+
+                deployStatus.innerText =
+                    "READY FOR DEPLOYMENT";
+
+                deployStatus.className =
+                    "status-pill pill-success";
+
+                document.getElementById("pipelineDecision").innerText =
+                    "ALLOW";
+
+                document.getElementById("deployEnv").innerText =
+                    "Production Ready";
+
+                document.getElementById("deployEnvStatus").className =
+                    "status-pill pill-success";
+
+                document.getElementById("deployEnvStatus").innerText =
+                    "READY";
+
+            } else if (risk === "MEDIUM") {
+
+                deployStatus.innerText =
+                    "STABLE WITH WARNINGS";
+
+                deployStatus.className =
+                    "status-pill pill-warning";
+
+                document.getElementById("pipelineDecision").innerText =
+                    "REVIEW ADVISED";
+
+                document.getElementById("deployEnv").innerText =
+                    "Needs Review";
+
+                document.getElementById("deployEnvStatus").className =
+                    "status-pill pill-warning";
+
+                document.getElementById("deployEnvStatus").innerText =
+                    "WARNING";
+
+            } else {
+
+                deployStatus.innerText =
+                    "BLOCKING ISSUES FOUND";
+
+                deployStatus.className =
+                    "status-pill pill-danger";
+
+                document.getElementById("pipelineDecision").innerText =
+                    "BLOCK";
+
+                document.getElementById("deployEnv").innerText =
+                    "Deployment Blocked";
+
+                document.getElementById("deployEnvStatus").className =
+                    "status-pill pill-danger";
+
+                document.getElementById("deployEnvStatus").innerText =
+                    "BLOCKED";
+            }
+
+            // Time
+            document.getElementById("lastUpdated").innerText =
+                "Last Sync: " + new Date().toLocaleString();
         })
+
         .catch(err => {
-            console.error("Error loading status.json. Ensure file exists in root.");
+
+            console.error(err);
+
+            document.getElementById("riskScore").innerText =
+                "NO DATA";
+
+            document.getElementById("deployStatus").innerText =
+                "STATUS FILE MISSING";
         });
 
-    // AI Insight Fetching
-    fetch('ai-report/ai-report.txt?t=' + Date.now())
+    // =========================================
+    // AI REPORT
+    // =========================================
+
+    fetch("ai-report/ai-report.txt?t=" + Date.now())
+
         .then(res => res.text())
+
         .then(text => {
+
             document.getElementById("aiContent").innerText = text;
-            if (text.toLowerCase().includes("block") || text.toLowerCase().includes("high")) {
-                document.getElementById("aiSummary").className = "status-pill pill-danger";
-                document.getElementById("aiSummary").innerText = "Deployment Blocked";
-            } else if (text.toLowerCase().includes("warning") || text.toLowerCase().includes("medium")) {
-                document.getElementById("aiSummary").className = "status-pill pill-warning";
-                document.getElementById("aiSummary").innerText = "Action Advised";
+
+            const summary =
+                document.getElementById("aiSummary");
+
+            const lower = text.toLowerCase();
+
+            if (
+                lower.includes("block") ||
+                lower.includes("high")
+            ) {
+
+                summary.className =
+                    "status-pill pill-danger";
+
+                summary.innerText =
+                    "Deployment Blocked";
+
+            } else if (
+                lower.includes("warning") ||
+                lower.includes("medium")
+            ) {
+
+                summary.className =
+                    "status-pill pill-warning";
+
+                summary.innerText =
+                    "Review Recommended";
+
+            } else {
+
+                summary.className =
+                    "status-pill pill-success";
+
+                summary.innerText =
+                    "Healthy Pipeline";
             }
         })
+
         .catch(() => {
-            document.getElementById("aiContent").innerText = "> AI Log file synchronizing...";
+
+            document.getElementById("aiContent").innerText =
+                "> Waiting for AI analysis report...";
         });
+
 </script>
 
 </body>
