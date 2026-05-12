@@ -1,1 +1,1 @@
-All checks passed with sufficient coverage, minor lint warnings present.
+All checks passed with minor lint warnings.
