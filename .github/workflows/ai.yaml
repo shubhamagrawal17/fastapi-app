@@ -116,21 +116,17 @@ jobs:
         run: |
           mkdir -p lint-report-dir
 
-          # Generate HTML lint report
           flake8 . \
             --max-line-length=$MAX_LINE \
             --format=html \
             --htmldir=lint-report-dir || true
 
-          # Save full flake8 output
           flake8 . \
             --max-line-length=$MAX_LINE \
             > flake8-output.txt || true
 
-          # Count ONLY lint issue lines
           ERR_COUNT=$(grep -E ":[0-9]+:[0-9]+:" flake8-output.txt | wc -l)
 
-          # Store clean numeric value
           echo "FLAKE_ERRORS=$ERR_COUNT" >> $GITHUB_ENV
 
           echo "Total flake8 issues: $ERR_COUNT"
@@ -518,26 +514,11 @@ jobs:
           cp artifacts/ai-decision/reason.txt site/ai-report/ || true
           cp artifacts/ai-decision/decision.txt site/ai-report/ || true
 
-          # Copy status.json for dashboard
+          # Copy dashboard data
           cp artifacts/dependency-report/status.json site/status.json || true
 
-          # Create dashboard index
-          cat <<EOF > site/index.html
-          <html>
-            <body style="background:#0f172a;color:white;font-family:Arial;padding:40px;">
-              <h1>AI DevOps Dashboard</h1>
-
-              <ul>
-                <li><a href="./test-report/report.html">Test Report</a></li>
-                <li><a href="./test-report/index.html">Coverage Report</a></li>
-                <li><a href="./lint-report/index.html">Lint Report</a></li>
-                <li><a href="./security-report/bandit-report.html">Security Report</a></li>
-                <li><a href="./dependency-report/dependency-report.html">Dependency Report</a></li>
-                <li><a href="./ai-report/ai-report.html">AI Decision Report</a></li>
-              </ul>
-            </body>
-          </html>
-          EOF
+          # Copy enterprise dashboard
+          cp index.html site/index.html
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
