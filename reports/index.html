@@ -12,6 +12,7 @@
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
 
@@ -22,7 +23,6 @@
             --bg-primary: #020617;
             --bg-secondary: #0f172a;
             --bg-card: rgba(15, 23, 42, 0.88);
-            --bg-hover: rgba(255,255,255,0.04);
 
             --accent-primary: #3b82f6;
             --accent-secondary: #8b5cf6;
@@ -40,6 +40,7 @@
         }
 
         * {
+
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -54,25 +55,22 @@
             font-family: "Inter", sans-serif;
 
             min-height: 100vh;
-            overflow: hidden;
+
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         body {
             display: flex;
         }
 
-        /* ===================================================
-           SIDEBAR
-        =================================================== */
-
         .sidebar {
 
             width: 280px;
-            background: rgba(2, 6, 23, 0.94);
+
+            background: rgba(2, 6, 23, 0.96);
 
             border-right: 1px solid var(--border);
-
-            backdrop-filter: blur(18px);
 
             padding: 28px 22px;
 
@@ -92,21 +90,22 @@
 
         .brand-logo {
 
-            width: 48px;
-            height: 48px;
+            width: 50px;
+            height: 50px;
 
             border-radius: 14px;
 
-            background: linear-gradient(135deg,
+            background: linear-gradient(
+                135deg,
                 var(--accent-primary),
-                var(--accent-secondary));
+                var(--accent-secondary)
+            );
 
             display: flex;
             align-items: center;
             justify-content: center;
 
             font-size: 20px;
-            color: white;
 
             box-shadow: 0 0 25px rgba(59,130,246,0.35);
         }
@@ -115,19 +114,20 @@
 
             font-size: 1.1rem;
             font-weight: 800;
-            letter-spacing: 0.4px;
         }
 
         .brand-subtitle {
 
             color: var(--text-secondary);
+
             font-size: 0.78rem;
-            margin-top: 3px;
+
+            margin-top: 4px;
         }
 
         .nav-group {
 
-            margin-bottom: 34px;
+            margin-bottom: 30px;
         }
 
         .nav-title {
@@ -149,7 +149,7 @@
             align-items: center;
             gap: 14px;
 
-            padding: 13px 16px;
+            padding: 14px 16px;
 
             border-radius: 12px;
 
@@ -157,12 +157,9 @@
 
             color: var(--text-secondary);
 
-            transition: all 0.2s ease;
+            transition: 0.2s ease;
 
-            font-size: 0.92rem;
-            font-weight: 500;
-
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .nav-item:hover {
@@ -170,8 +167,6 @@
             background: rgba(59,130,246,0.12);
 
             color: white;
-
-            transform: translateX(2px);
         }
 
         .nav-item.active {
@@ -183,54 +178,16 @@
             );
 
             color: white;
-
-            border: 1px solid rgba(59,130,246,0.18);
         }
-
-        .sidebar-footer {
-
-            background: rgba(255,255,255,0.03);
-
-            border: 1px solid var(--border);
-
-            border-radius: 16px;
-
-            padding: 18px;
-        }
-
-        .footer-title {
-
-            font-size: 0.9rem;
-            font-weight: 700;
-
-            margin-bottom: 10px;
-        }
-
-        .footer-text {
-
-            color: var(--text-secondary);
-
-            line-height: 1.6;
-
-            font-size: 0.82rem;
-        }
-
-        /* ===================================================
-           MAIN
-        =================================================== */
 
         .main {
 
             flex: 1;
 
-            overflow-y: auto;
-
             padding: 34px;
-        }
 
-        /* ===================================================
-           TOPBAR
-        =================================================== */
+            overflow-y: auto;
+        }
 
         .topbar {
 
@@ -238,7 +195,7 @@
             justify-content: space-between;
             align-items: center;
 
-            margin-bottom: 28px;
+            margin-bottom: 30px;
         }
 
         .topbar h1 {
@@ -249,18 +206,9 @@
 
         .topbar-subtitle {
 
-            margin-top: 6px;
-
             color: var(--text-secondary);
 
-            font-size: 0.92rem;
-        }
-
-        .topbar-actions {
-
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            margin-top: 6px;
         }
 
         .btn {
@@ -273,13 +221,6 @@
 
             cursor: pointer;
 
-            font-weight: 700;
-
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-
             background: linear-gradient(
                 135deg,
                 var(--accent-primary),
@@ -287,18 +228,9 @@
             );
 
             color: white;
+
+            font-weight: 700;
         }
-
-        .btn-primary:hover {
-
-            transform: translateY(-1px);
-
-            opacity: 0.95;
-        }
-
-        /* ===================================================
-           GRID
-        =================================================== */
 
         .grid {
 
@@ -319,26 +251,19 @@
 
             padding: 24px;
 
-            backdrop-filter: blur(16px);
-
             box-shadow: var(--shadow);
         }
 
         .col-3 { grid-column: span 3; }
         .col-4 { grid-column: span 4; }
         .col-6 { grid-column: span 6; }
-        .col-8 { grid-column: span 8; }
         .col-12 { grid-column: span 12; }
-
-        /* ===================================================
-           METRICS
-        =================================================== */
 
         .metric-header {
 
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
 
             margin-bottom: 20px;
         }
@@ -347,9 +272,7 @@
 
             color: var(--text-secondary);
 
-            font-size: 0.78rem;
-
-            letter-spacing: 1px;
+            font-size: 0.8rem;
 
             text-transform: uppercase;
 
@@ -374,10 +297,10 @@
 
         .metric-value {
 
-            font-size: 2.5rem;
+            font-size: 2.4rem;
             font-weight: 800;
 
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .metric-sub {
@@ -385,11 +308,9 @@
             color: var(--text-secondary);
 
             font-size: 0.9rem;
-        }
 
-        /* ===================================================
-           STATUS BADGES
-        =================================================== */
+            margin-top: 14px;
+        }
 
         .badge {
 
@@ -397,14 +318,12 @@
             align-items: center;
             justify-content: center;
 
-            padding: 7px 14px;
+            padding: 8px 14px;
 
             border-radius: 999px;
 
             font-size: 0.72rem;
             font-weight: 700;
-
-            letter-spacing: 0.4px;
         }
 
         .success {
@@ -434,16 +353,12 @@
             color: var(--danger);
         }
 
-        /* ===================================================
-           PROGRESS
-        =================================================== */
-
         .progress {
 
             width: 100%;
             height: 10px;
 
-            background: rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.08);
 
             border-radius: 999px;
 
@@ -466,20 +381,28 @@
             transition: width 1s ease;
         }
 
-        /* ===================================================
-           REPORT LINKS
-        =================================================== */
+        .terminal {
 
-        .report-list {
+            background: #000814;
 
-            margin-top: 16px;
+            border-radius: 16px;
+
+            padding: 24px;
+
+            color: #4ade80;
+
+            font-family: monospace;
+
+            min-height: 260px;
+
+            white-space: pre-wrap;
         }
 
         .report-link {
 
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
 
             padding: 14px 16px;
 
@@ -489,138 +412,24 @@
 
             text-decoration: none;
 
-            color: var(--text-primary);
+            color: white;
 
-            margin-bottom: 12px;
-
-            transition: all 0.2s ease;
-
-            border: 1px solid transparent;
+            margin-bottom: 14px;
         }
 
         .report-link:hover {
 
-            background: rgba(59,130,246,0.08);
-
-            border-color: rgba(59,130,246,0.14);
-
-            transform: translateY(-1px);
+            background: rgba(59,130,246,0.12);
         }
 
-        .report-link-left {
-
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .report-link i {
-
-            color: var(--accent-primary);
-        }
-
-        /* ===================================================
-           TERMINAL
-        =================================================== */
-
-        .terminal {
-
-            background: #000814;
-
-            border-radius: 16px;
-
-            border: 1px solid rgba(255,255,255,0.06);
-
-            padding: 24px;
-
-            font-family: "Fira Code", monospace;
-
-            color: #4ade80;
-
-            line-height: 1.8;
-
-            min-height: 280px;
-
-            overflow-y: auto;
-
-            white-space: pre-wrap;
-        }
-
-        /* ===================================================
-           HEALTH GRID
-        =================================================== */
-
-        .health-grid {
-
-            display: grid;
-
-            grid-template-columns: repeat(2, 1fr);
-
-            gap: 16px;
-
-            margin-top: 18px;
-        }
-
-        .health-card {
-
-            background: rgba(255,255,255,0.03);
-
-            border: 1px solid rgba(255,255,255,0.05);
-
-            border-radius: 16px;
-
-            padding: 18px;
-        }
-
-        .health-value {
-
-            font-size: 1.5rem;
-            font-weight: 800;
-
-            margin-bottom: 8px;
-        }
-
-        .health-label {
-
-            color: var(--text-secondary);
-
-            font-size: 0.85rem;
-        }
-
-        /* ===================================================
-           RESPONSIVE
-        =================================================== */
-
-        @media (max-width: 1400px) {
-
-            .col-3 {
-                grid-column: span 6;
-            }
-
-            .col-4 {
-                grid-column: span 6;
-            }
-
-            .col-6,
-            .col-8 {
-                grid-column: span 12;
-            }
-        }
-
-        @media (max-width: 900px) {
+        @media (max-width: 1000px) {
 
             body {
                 flex-direction: column;
-                overflow: auto;
             }
 
             .sidebar {
-
                 width: 100%;
-
-                border-right: none;
-
-                border-bottom: 1px solid var(--border);
             }
 
             .grid {
@@ -630,7 +439,6 @@
             .col-3,
             .col-4,
             .col-6,
-            .col-8,
             .col-12 {
                 grid-column: span 12;
             }
@@ -641,10 +449,6 @@
 </head>
 
 <body>
-
-    <!-- ===================================================
-         SIDEBAR
-    ==================================================== -->
 
     <aside class="sidebar">
 
@@ -673,19 +477,6 @@
             <div class="nav-group">
 
                 <div class="nav-title">
-                    OVERVIEW
-                </div>
-
-                <a href="#" class="nav-item active">
-                    <i class="fas fa-chart-line"></i>
-                    Dashboard
-                </a>
-
-            </div>
-
-            <div class="nav-group">
-
-                <div class="nav-title">
                     REPORTS
                 </div>
 
@@ -697,7 +488,7 @@
                     Test Report
                 </a>
 
-                <a href="coverage-report/index.html"
+                <a href="test-report/"
                     target="_blank"
                     class="nav-item">
 
@@ -741,29 +532,9 @@
 
         </div>
 
-        <div class="sidebar-footer">
-
-            <div class="footer-title">
-                Enterprise Deployment State
-            </div>
-
-            <div class="footer-text">
-                Real-time AI-powered DevSecOps governance,
-                deployment intelligence, compliance visibility,
-                and production risk management.
-            </div>
-
-        </div>
-
     </aside>
 
-    <!-- ===================================================
-         MAIN
-    ==================================================== -->
-
     <main class="main">
-
-        <!-- TOPBAR -->
 
         <div class="topbar">
 
@@ -776,36 +547,28 @@
                 <div id="lastUpdated"
                     class="topbar-subtitle">
 
-                    Synchronizing with GitHub Actions...
+                    Loading pipeline status...
                 </div>
 
             </div>
 
-            <div class="topbar-actions">
+            <button class="btn"
+                onclick="location.reload()">
 
-                <button class="btn btn-primary"
-                    onclick="location.reload()">
-
-                    <i class="fas fa-sync"></i>
-                    Refresh Dashboard
-                </button>
-
-            </div>
+                <i class="fas fa-sync"></i>
+                Refresh Dashboard
+            </button>
 
         </div>
 
-        <!-- GRID -->
-
         <div class="grid">
-
-            <!-- DEPLOYMENT RISK -->
 
             <div class="card col-4">
 
                 <div class="metric-header">
 
                     <div class="metric-title">
-                        Deployment Readiness
+                        Deployment Risk
                     </div>
 
                     <div class="metric-icon">
@@ -823,19 +586,10 @@
                 <div id="deployStatus"
                     class="badge warning">
 
-                    WAITING FOR PIPELINE
-                </div>
-
-                <div style="margin-top:18px;"
-                    class="metric-sub">
-
-                    AI-driven deployment governance
-                    and production risk evaluation.
+                    WAITING
                 </div>
 
             </div>
-
-            <!-- COVERAGE -->
 
             <div class="card col-4">
 
@@ -862,22 +616,14 @@
                         class="progress-bar"></div>
                 </div>
 
-                <div style="margin-top:14px;"
-                    class="metric-sub">
-
-                    Enterprise quality threshold monitoring.
-                </div>
-
             </div>
-
-            <!-- PIPELINE STATUS -->
 
             <div class="card col-4">
 
                 <div class="metric-header">
 
                     <div class="metric-title">
-                        Pipeline Status
+                        Pipeline Decision
                     </div>
 
                     <div class="metric-icon">
@@ -898,17 +644,9 @@
                     WAITING
                 </div>
 
-                <div style="margin-top:14px;"
-                    class="metric-sub">
-
-                    Production deployment orchestration state.
-                </div>
-
             </div>
 
-            <!-- REPORTS -->
-
-            <div class="card col-4">
+            <div class="card col-6">
 
                 <div class="metric-header">
 
@@ -922,121 +660,33 @@
 
                 </div>
 
-                <div class="report-list">
+                <a href="security-report/bandit-report.html"
+                    target="_blank"
+                    class="report-link">
 
-                    <a href="security-report/bandit-report.html"
-                        target="_blank"
-                        class="report-link">
+                    <span>Security Report</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
 
-                        <div class="report-link-left">
-                            <i class="fas fa-shield-halved"></i>
-                            Security Report
-                        </div>
+                <a href="dependency-report/dependency-report.html"
+                    target="_blank"
+                    class="report-link">
 
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
+                    <span>Dependency Scan</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
 
-                    <a href="dependency-report/dependency-report.html"
-                        target="_blank"
-                        class="report-link">
+                <a href="lint-report/index.html"
+                    target="_blank"
+                    class="report-link">
 
-                        <div class="report-link-left">
-                            <i class="fas fa-box-open"></i>
-                            Dependency Scan
-                        </div>
-
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-
-                    <a href="lint-report/index.html"
-                        target="_blank"
-                        class="report-link">
-
-                        <div class="report-link-left">
-                            <i class="fas fa-code"></i>
-                            Code Quality
-                        </div>
-
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-
-                </div>
+                    <span>Lint Report</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
 
             </div>
 
-            <!-- HEALTH -->
-
-            <div class="card col-4">
-
-                <div class="metric-header">
-
-                    <div class="metric-title">
-                        System Health
-                    </div>
-
-                    <div class="metric-icon">
-                        <i class="fas fa-heart-pulse"></i>
-                    </div>
-
-                </div>
-
-                <div class="health-grid">
-
-                    <div class="health-card">
-
-                        <div class="health-value">
-                            24ms
-                        </div>
-
-                        <div class="health-label">
-                            API Latency
-                        </div>
-
-                    </div>
-
-                    <div class="health-card">
-
-                        <div class="health-value">
-                            99.98%
-                        </div>
-
-                        <div class="health-label">
-                            Pipeline Uptime
-                        </div>
-
-                    </div>
-
-                    <div class="health-card">
-
-                        <div class="health-value">
-                            LIVE
-                        </div>
-
-                        <div class="health-label">
-                            GitHub Actions
-                        </div>
-
-                    </div>
-
-                    <div class="health-card">
-
-                        <div class="health-value">
-                            ACTIVE
-                        </div>
-
-                        <div class="health-label">
-                            AI Governance
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- AI TERMINAL -->
-
-            <div class="card col-12">
+            <div class="card col-6">
 
                 <div class="metric-header">
 
@@ -1055,7 +705,7 @@
                 <div id="aiContent"
                     class="terminal">
 
-Initializing AI governance engine...
+Waiting for AI analysis...
                 </div>
 
             </div>
@@ -1064,50 +714,7 @@ Initializing AI governance engine...
 
     </main>
 
-    <!-- ===================================================
-         SCRIPT
-    ==================================================== -->
-
     <script>
-
-        const UI = {
-
-            updateStatus(elementId, status) {
-
-                const el =
-                    document.getElementById(elementId);
-
-                if (!el) return;
-
-                const normalized =
-                    (status || "").toLowerCase();
-
-                if (normalized === "passed") {
-
-                    el.innerHTML = "✔ PASSED";
-                    el.className = "badge success";
-
-                } else if (normalized === "warning") {
-
-                    el.innerHTML = "⚠ WARNING";
-                    el.className = "badge warning";
-
-                } else if (normalized === "failed") {
-
-                    el.innerHTML = "✘ FAILED";
-                    el.className = "badge danger";
-
-                } else {
-
-                    el.innerHTML = "⏳ PENDING";
-                    el.className = "badge warning";
-                }
-            }
-        };
-
-        // ===================================================
-        // LOAD STATUS.JSON
-        // ===================================================
 
         fetch("status.json?t=" + Date.now())
 
@@ -1127,7 +734,7 @@ Initializing AI governance engine...
                 let risk = "LOW";
 
                 if (
-                    data.tests !== "passed" ||
+                    data.tests !== "completed" ||
                     data.security === "failed" ||
                     data.dependency === "failed"
                 ) {
@@ -1150,11 +757,10 @@ Initializing AI governance engine...
 
                 if (risk === "LOW") {
 
-                    riskEl.style.color =
-                        "var(--success)";
+                    riskEl.style.color = "#10b981";
 
                     document.getElementById("deployStatus")
-                        .innerText = "READY FOR DEPLOYMENT";
+                        .innerText = "READY";
 
                     document.getElementById("deployStatus")
                         .className = "badge success";
@@ -1170,11 +776,10 @@ Initializing AI governance engine...
 
                 } else if (risk === "MEDIUM") {
 
-                    riskEl.style.color =
-                        "var(--warning)";
+                    riskEl.style.color = "#f59e0b";
 
                     document.getElementById("deployStatus")
-                        .innerText = "REVIEW ADVISED";
+                        .innerText = "REVIEW";
 
                     document.getElementById("deployStatus")
                         .className = "badge warning";
@@ -1190,11 +795,10 @@ Initializing AI governance engine...
 
                 } else {
 
-                    riskEl.style.color =
-                        "var(--danger)";
+                    riskEl.style.color = "#ef4444";
 
                     document.getElementById("deployStatus")
-                        .innerText = "DEPLOYMENT BLOCKED";
+                        .innerText = "BLOCKED";
 
                     document.getElementById("deployStatus")
                         .className = "badge danger";
@@ -1211,26 +815,17 @@ Initializing AI governance engine...
 
                 document.getElementById("lastUpdated")
                     .innerText =
-                    "Last Sync: " +
+                    "Last Updated: " +
                     new Date().toLocaleString();
             })
 
-            .catch(err => {
-
-                console.error(err);
+            .catch(() => {
 
                 document.getElementById("riskScore")
                     .innerText = "NO DATA";
-
-                document.getElementById("deployStatus")
-                    .innerText = "STATUS FILE MISSING";
             });
 
-        // ===================================================
-        // LOAD AI REPORT
-        // ===================================================
-
-        fetch("ai-report/ai-report.txt?t=" + Date.now())
+        fetch("ai-report/reason.txt?t=" + Date.now())
 
             .then(res => res.text())
 
@@ -1281,7 +876,7 @@ Initializing AI governance engine...
 
                 document.getElementById("aiContent")
                     .innerText =
-                    "> Waiting for AI analysis report...";
+                    "> Waiting for AI report...";
             });
 
     </script>
