@@ -518,7 +518,7 @@ jobs:
           cp artifacts/dependency-report/status.json site/status.json || true
 
           # Copy enterprise dashboard
-          cp index.html site/index.html
+          cp reports/index.html site/index.html
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
