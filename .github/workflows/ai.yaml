@@ -14,11 +14,15 @@ jobs:
   # =====================================================
   # 1. TEST STAGE
   # =====================================================
+
   test:
     runs-on: ubuntu-22.04
+
     env:
       PYTHONPATH: .
+
     steps:
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
@@ -50,6 +54,7 @@ jobs:
 
           tree = ET.parse("coverage.xml")
           root = tree.getroot()
+
           coverage = float(root.attrib.get("line-rate", 0)) * 100
 
           with open("status.json", "w") as f:
@@ -76,11 +81,13 @@ jobs:
   # =====================================================
   # 2. LINT STAGE
   # =====================================================
+
   lint:
     runs-on: ubuntu-latest
     needs: test
 
     steps:
+
       - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
@@ -98,6 +105,7 @@ jobs:
 
       - name: Run Lint
         run: |
+
           mkdir -p lint-report
 
           flake8 . \
@@ -134,11 +142,13 @@ jobs:
   # =====================================================
   # 3. SECURITY STAGE
   # =====================================================
+
   security:
     runs-on: ubuntu-latest
     needs: lint
 
     steps:
+
       - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
@@ -156,6 +166,7 @@ jobs:
 
       - name: Run Security Scan
         run: |
+
           bandit -r app/ -f html -o bandit-report.html || true
           bandit -r app/ -f json -o bandit-report.json || true
 
@@ -189,11 +200,13 @@ jobs:
   # =====================================================
   # 4. DEPENDENCY SCAN
   # =====================================================
+
   dependency-scan:
     runs-on: ubuntu-latest
     needs: security
 
     steps:
+
       - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
@@ -211,6 +224,7 @@ jobs:
 
       - name: Run Dependency Scan
         run: |
+
           pip-audit -r requirements.txt -f json -o dependency-report.json || true
           pip-audit -r requirements.txt > dependency-report.txt || true
 
@@ -230,23 +244,40 @@ jobs:
           <html>
           <head>
             <title>Dependency Scan Report</title>
+
             <style>
               body {{
                 font-family: Arial;
-                padding: 20px;
-                background: #f4f4f4;
+                background: #0f172a;
+                color: white;
+                padding: 30px;
               }}
+
+              .card {{
+                background: #1e293b;
+                padding: 25px;
+                border-radius: 12px;
+              }}
+
               pre {{
-                background: white;
-                padding: 15px;
-                border-radius: 8px;
+                white-space: pre-wrap;
+                line-height: 1.6;
               }}
             </style>
           </head>
+
           <body>
-            <h1>Dependency Scan Report</h1>
-            <h2>Total Vulnerabilities: {vulns}</h2>
-            <pre>{open('dependency-report.txt').read()}</pre>
+
+            <div class="card">
+
+              <h1>📦 Dependency Scan Report</h1>
+
+              <h2>Total Vulnerabilities: {vulns}</h2>
+
+              <pre>{open('dependency-report.txt').read()}</pre>
+
+            </div>
+
           </body>
           </html>
           """
@@ -262,8 +293,14 @@ jobs:
 
           status = json.load(open("status.json"))
 
-          data = json.load(open("dependency-report.json"))
-          vulns = sum(len(dep.get("vulns", [])) for dep in data.get("dependencies", []))
+          try:
+              data = json.load(open("dependency-report.json"))
+              vulns = sum(
+                  len(dep.get("vulns", []))
+                  for dep in data.get("dependencies", [])
+              )
+          except:
+              vulns = 0
 
           status["dependency"] = "passed" if vulns == 0 else "warning"
 
@@ -281,106 +318,275 @@ jobs:
             status.json
 
   # =====================================================
-  # 5. AI ANALYSIS & GATE
+  # 5. AI ANALYSIS
   # =====================================================
-  ai-analysis:
+
+  # =====================================================
+# 5. AI ANALYSIS
+# =====================================================
+
+ai-analysis:
+  runs-on: ubuntu-latest
+
+  needs: dependency-scan
+
+  steps:
+
+    - uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: dependency-report
+        path: artifacts/dependency-report
+
+    - name: Install jq
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+
+    - name: Call AI Engine
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      run: |
+
+        cp artifacts/dependency-report/status.json .
+
+        INPUT=$(cat status.json)
+
+        JSON_PAYLOAD=$(jq -n \
+          --arg text "Analyze the CI/CD pipeline results and return ONLY valid raw JSON without markdown or code blocks. Format: {\"risk\":\"LOW|MEDIUM|HIGH\",\"decision\":\"ALLOW|BLOCK\",\"reason\":\"text\"}. Data: $INPUT" \
+          '{
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: $text
+              }
+            ]
+          }')
+
+        curl https://api.openai.com/v1/chat/completions \
+          -s \
+          -H "Authorization: Bearer $OPENAI_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d "$JSON_PAYLOAD" > ai-response.json
+
+        python <<EOF
+        import json
+
+        try:
+
+            res = json.load(open("ai-response.json"))
+
+            content = res["choices"][0]["message"]["content"]
+
+            content = (
+                content
+                .replace("```json", "")
+                .replace("```", "")
+                .strip()
+            )
+
+            parsed = json.loads(content)
+
+            risk = parsed.get("risk", "UNKNOWN")
+            decision = parsed.get("decision", "UNKNOWN")
+            reason = parsed.get("reason", "No reason provided")
+
+            with open("risk.txt", "w") as f:
+                f.write(risk)
+
+            with open("decision.txt", "w") as f:
+                f.write(decision)
+
+            with open("reason.txt", "w") as f:
+                f.write(reason)
+
+            formatted = (
+                f"AI Deployment Decision\\n\\n"
+                f"Risk      : {risk}\\n"
+                f"Decision  : {decision}\\n\\n"
+                f"Reason:\\n"
+                f"{reason}\\n"
+            )
+
+            with open("ai-report.txt", "w") as f:
+                f.write(formatted)
+
+            print("AI analysis completed successfully")
+
+        except Exception as e:
+
+            error_message = f"AI Parsing Error: {str(e)}"
+
+            with open("ai-report.txt", "w") as f:
+                f.write(error_message)
+
+            with open("risk.txt", "w") as f:
+                f.write("UNKNOWN")
+
+            with open("decision.txt", "w") as f:
+                f.write("BLOCK")
+
+            with open("reason.txt", "w") as f:
+                f.write(error_message)
+
+            print(error_message)
+
+        EOF
+
+        RISK=$(cat risk.txt)
+        DECISION=$(cat decision.txt)
+        REASON=$(cat reason.txt)
+
+        RISK_COLOR="#10b981"
+
+        if [ "$RISK" = "MEDIUM" ]; then
+          RISK_COLOR="#f59e0b"
+        fi
+
+        if [ "$RISK" = "HIGH" ]; then
+          RISK_COLOR="#ef4444"
+        fi
+
+        cat <<HTML > ai-report.html
+        <!DOCTYPE html>
+        <html lang="en">
+        
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>AI Deployment Analysis</title>
+        
+          <style>
+        
+            body {
+              margin: 0;
+              padding: 40px;
+              background: #0f172a;
+              color: white;
+              font-family: Arial, sans-serif;
+            }
+        
+            .container {
+              max-width: 900px;
+              margin: auto;
+            }
+        
+            .card {
+              background: #1e293b;
+              border-radius: 16px;
+              padding: 30px;
+              border: 1px solid rgba(255,255,255,0.08);
+            }
+        
+            .risk {
+              font-size: 28px;
+              font-weight: bold;
+              color: ${RISK_COLOR};
+              margin-top: 20px;
+            }
+        
+            .reason {
+              margin-top: 30px;
+              line-height: 1.8;
+              background: rgba(255,255,255,0.03);
+              padding: 20px;
+              border-radius: 10px;
+              color: #cbd5e1;
+            }
+        
+          </style>
+        
+        </head>
+        
+        <body>
+        
+          <div class="container">
+        
+            <div class="card">
+        
+              <h1>🤖 AI Deployment Analysis</h1>
+        
+              <div class="risk">
+                Risk Level: ${RISK}
+              </div>
+        
+              <h2>Deployment Decision: ${DECISION}</h2>
+        
+              <div class="reason">
+                <strong>AI Reasoning:</strong>
+                <br><br>
+                ${REASON}
+              </div>
+        
+            </div>
+        
+          </div>
+        
+        </body>
+        </html>
+        HTML
+        
+            - name: Upload AI Artifacts
+              uses: actions/upload-artifact@v4
+        
+              with:
+                name: ai-decision
+        
+                path: |
+                  ai-report.txt
+                  ai-report.html
+                  ai-response.json
+                  risk.txt
+                  decision.txt
+                  reason.txt
+  # =====================================================
+  # 6. DEPLOYMENT GATE
+  # =====================================================
+
+  deployment-gate:
     runs-on: ubuntu-latest
-    needs: dependency-scan
+    needs: ai-analysis
 
     steps:
-      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
-          name: dependency-report
-          path: artifacts/dependency-report
-
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Call AI Engine
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          cp artifacts/dependency-report/status.json .
-
-          INPUT=$(cat status.json)
-
-          JSON_PAYLOAD=$(jq -n \
-            --arg text "Analyze results: $INPUT. Return ONLY JSON: {\"risk\": \"LOW|HIGH\", \"decision\": \"ALLOW|BLOCK\", \"reason\": \"string\"}" \
-            '{model: "gpt-4o", messages: [{role: "user", content: $text}]}')
-
-          curl https://api.openai.com/v1/chat/completions \
-            -s \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD" > ai-response.json
-
-          python <<EOF
-          import json
-
-          try:
-              res = json.load(open("ai-response.json"))
-              content = res['choices'][0]['message']['content']
-
-              with open("ai-report.txt", "w") as f:
-                  f.write(content)
-
-              html = f'''
-              <html>
-              <head>
-                <title>AI Analysis Report</title>
-                <style>
-                  body {{
-                    font-family: Arial;
-                    padding: 20px;
-                    background: #f4f4f4;
-                  }}
-                  pre {{
-                    background: white;
-                    padding: 15px;
-                    border-radius: 8px;
-                  }}
-                </style>
-              </head>
-              <body>
-                <h1>AI Deployment Decision</h1>
-                <pre>{content}</pre>
-              </body>
-              </html>
-              '''
-
-              with open("ai-report.html", "w") as f:
-                  f.write(html)
-
-              if "BLOCK" in content.upper():
-                  exit(1)
-
-          except Exception as e:
-              with open("ai-report.txt", "w") as f:
-                  f.write(f"AI Gate Error: {str(e)}")
-          EOF
-
-      - name: Upload AI Artifacts
-        uses: actions/upload-artifact@v4
-        with:
           name: ai-decision
-          path: |
-            ai-report.txt
-            ai-report.html
+          path: artifacts/ai-decision
+
+      - name: Validate AI Decision
+        run: |
+
+          echo "Reading AI deployment report..."
+
+          cat artifacts/ai-decision/ai-report.txt
+
+          if grep -iq "Decision  : BLOCK" artifacts/ai-decision/ai-report.txt; then
+
+            echo "❌ Deployment blocked by AI"
+            exit 1
+
+          fi
+
+          echo "✅ Deployment approved by AI"
 
   # =====================================================
-  # 6. BUILD & PUSH
+  # 7. BUILD & PUSH
   # =====================================================
+
   build-and-push:
     runs-on: ubuntu-latest
-    needs: ai-analysis
+    needs: deployment-gate
 
     permissions:
       id-token: write
       contents: read
 
     steps:
+
       - uses: actions/checkout@v4
 
       - name: Azure Login
@@ -392,6 +598,7 @@ jobs:
 
       - name: Build & Push
         run: |
+
           az acr login --name ${{ secrets.ACR_NAME }}
 
           docker build \
@@ -401,13 +608,15 @@ jobs:
             ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
   # =====================================================
-  # 7. DEPLOY TO WEB APP
+  # 8. DEPLOY TO WEB APP
   # =====================================================
+
   deploy-to-webapp:
     runs-on: ubuntu-latest
     needs: build-and-push
 
     steps:
+
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -422,8 +631,9 @@ jobs:
           images: ${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.run_number }}
 
   # =====================================================
-  # 8. DEPLOY REPORT DASHBOARD
+  # 9. DEPLOY REPORT DASHBOARD
   # =====================================================
+
   deploy-report:
     runs-on: ubuntu-latest
 
@@ -437,6 +647,7 @@ jobs:
     if: always()
 
     steps:
+
       - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
@@ -445,6 +656,7 @@ jobs:
 
       - name: Prepare Dashboard
         run: |
+
           mkdir -p site
 
           mkdir -p site/test-report
@@ -456,91 +668,21 @@ jobs:
 
           touch site/.nojekyll
 
-          # Dashboard Home Page
-          cat > site/index.html <<EOF
-          <html>
-          <head>
-            <title>AI DevOps Dashboard</title>
-            <style>
-              body {
-                font-family: Arial;
-                background: #f4f4f4;
-                padding: 40px;
-              }
+          cp reports/index.html site/index.html || cp index.html site/index.html
 
-              .card {
-                background: white;
-                padding: 20px;
-                margin-bottom: 20px;
-                border-radius: 10px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-              }
-
-              a {
-                text-decoration: none;
-                font-weight: bold;
-              }
-            </style>
-          </head>
-          <body>
-
-            <h1>🚀 AI DevOps Deployment Dashboard</h1>
-
-            <div class="card">
-              <h2>🧪 Test Report</h2>
-              <a href="./test-report/report.html">Open Report</a>
-            </div>
-
-            <div class="card">
-              <h2>📊 Coverage Report</h2>
-              <a href="./coverage-report/index.html">Open Coverage</a>
-            </div>
-
-            <div class="card">
-              <h2>🧹 Lint Report</h2>
-              <a href="./lint-report/index.html">Open Lint Report</a>
-            </div>
-
-            <div class="card">
-              <h2>🔒 Security Report</h2>
-              <a href="./security-report/bandit-report.html">Open Security Report</a>
-            </div>
-
-            <div class="card">
-              <h2>📦 Dependency Report</h2>
-              <a href="./dependency-report/dependency-report.html">Open Dependency Report</a>
-            </div>
-
-            <div class="card">
-              <h2>🤖 AI Analysis Report</h2>
-              <a href="./ai-report/ai-report.html">Open AI Report</a>
-            </div>
-
-          </body>
-          </html>
-          EOF
-
-          # Copy Test Reports
           cp artifacts/test-report/report.html site/test-report/ || true
 
-          # Copy Coverage HTML
           cp -r artifacts/test-report/htmlcov/* site/coverage-report/ || true
 
-          # Copy Lint Reports
           cp -r artifacts/lint-report/lint-report/* site/lint-report/ || true
 
-          # Copy Security Reports
           cp artifacts/security-report/bandit-report.html site/security-report/ || true
 
-          # Copy Dependency Reports
           cp artifacts/dependency-report/dependency-report.html site/dependency-report/ || true
-          cp artifacts/dependency-report/dependency-report.txt site/dependency-report/ || true
 
-          # Copy AI Reports
           cp artifacts/ai-decision/ai-report.html site/ai-report/ || true
           cp artifacts/ai-decision/ai-report.txt site/ai-report/ || true
 
-          # Final Status
           cp artifacts/dependency-report/status.json site/status.json || true
 
       - name: Publish to GitHub Pages
