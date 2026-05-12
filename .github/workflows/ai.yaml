@@ -502,6 +502,7 @@ jobs:
 
           touch site/.nojekyll
 
+          # Copy reports
           cp artifacts/test-report/report.html site/test-report/ || true
           cp -r artifacts/test-report/htmlcov/* site/test-report/ || true
 
@@ -511,11 +512,16 @@ jobs:
 
           cp artifacts/dependency-report/dependency-report.html site/dependency-report/ || true
 
+          # Copy AI artifacts
           cp artifacts/ai-decision/ai-report.html site/ai-report/ || true
           cp artifacts/ai-decision/risk.txt site/ai-report/ || true
           cp artifacts/ai-decision/reason.txt site/ai-report/ || true
           cp artifacts/ai-decision/decision.txt site/ai-report/ || true
 
+          # Copy status.json for dashboard
+          cp artifacts/dependency-report/status.json site/status.json || true
+
+          # Create dashboard index
           cat <<EOF > site/index.html
           <html>
             <body style="background:#0f172a;color:white;font-family:Arial;padding:40px;">
@@ -523,6 +529,7 @@ jobs:
 
               <ul>
                 <li><a href="./test-report/report.html">Test Report</a></li>
+                <li><a href="./test-report/index.html">Coverage Report</a></li>
                 <li><a href="./lint-report/index.html">Lint Report</a></li>
                 <li><a href="./security-report/bandit-report.html">Security Report</a></li>
                 <li><a href="./dependency-report/dependency-report.html">Dependency Report</a></li>
