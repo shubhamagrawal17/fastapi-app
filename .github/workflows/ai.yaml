@@ -122,15 +122,18 @@ jobs:
             --format=html \
             --htmldir=lint-report-dir || true
 
-          # Get ONLY numeric count
-          ERR_COUNT=$(flake8 . \
-            --count \
+          # Save full flake8 output
+          flake8 . \
             --max-line-length=$MAX_LINE \
-            --quiet || echo "0")
+            > flake8-output.txt || true
 
-          echo "FLAKE_ERRORS=${ERR_COUNT}" >> $GITHUB_ENV
+          # Count ONLY lint issue lines
+          ERR_COUNT=$(grep -E ":[0-9]+:[0-9]+:" flake8-output.txt | wc -l)
 
-          echo "Total flake8 issues: ${ERR_COUNT}"
+          # Store clean numeric value
+          echo "FLAKE_ERRORS=$ERR_COUNT" >> $GITHUB_ENV
+
+          echo "Total flake8 issues: $ERR_COUNT"
 
       - name: Update Status
         env:
@@ -159,6 +162,7 @@ jobs:
           name: lint-report
           path: |
             lint-report-dir
+            flake8-output.txt
             status.json
 
   # =====================================================
