@@ -1,1 +1,1 @@
-All checks passed except for lint warnings, which are not critical.
+Sufficient test coverage and security checks passed, minimal lint warnings.
