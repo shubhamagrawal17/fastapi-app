@@ -512,6 +512,9 @@ jobs:
           cp artifacts/dependency-report/dependency-report.html site/dependency-report/ || true
 
           cp artifacts/ai-decision/ai-report.html site/ai-report/ || true
+          cp artifacts/ai-decision/risk.txt site/ai-report/ || true
+          cp artifacts/ai-decision/reason.txt site/ai-report/ || true
+          cp artifacts/ai-decision/decision.txt site/ai-report/ || true
 
           cat <<EOF > site/index.html
           <html>
